@@ -47,6 +47,9 @@ sealed interface Route : NavKey {
     data object NetworkSettings : Route
 
     @Serializable
+    data object RulesSettings : Route
+
+    @Serializable
     data object ExternalControl : Route
 
     @Serializable

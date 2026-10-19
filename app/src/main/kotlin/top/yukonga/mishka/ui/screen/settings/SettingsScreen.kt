@@ -23,6 +23,7 @@ import top.yukonga.mishka.platform.ProxyServiceBridge
 import top.yukonga.mishka.platform.StorageKeys
 import top.yukonga.mishka.ui.component.AdaptiveTopAppBar
 import top.yukonga.mishka.ui.component.CardItem
+import top.yukonga.mishka.ui.component.HintCard
 import top.yukonga.mishka.ui.component.blur.BlurredBar
 import top.yukonga.mishka.ui.component.blur.rememberBlurBackdrop
 import top.yukonga.mishka.ui.component.groupedCardItems
@@ -53,6 +54,7 @@ fun SettingsScreen(
     onNavigateThemeSettings: () -> Unit = {},
     onNavigateFileManager: () -> Unit = {},
     onNavigateOverrides: () -> Unit = {},
+    onNavigateRulesSettings: () -> Unit = {},
     onNavigateBackup: () -> Unit = {},
     onNavigateAbout: () -> Unit = {},
     bootStartManager: BootStartManager? = null,
@@ -130,8 +132,9 @@ fun SettingsScreen(
                 item {
                     SmallTitle(text = stringResource(R.string.settings_network))
                 }
+                // 隧道模式单独成卡，下面紧跟 ROOT 两种子模式的说明
                 groupedCardItems(
-                    keyPrefix = "settings_network",
+                    keyPrefix = "settings_tun",
                     items = buildList {
                         if (hasRootPermission) {
                             add(CardItem("tunMode") {
@@ -175,6 +178,17 @@ fun SettingsScreen(
                                 )
                             })
                         }
+                    },
+                )
+                // ROOT 两种代理方式的注释：只在有隧道模式选择器时展示
+                if (hasRootPermission) {
+                    item(key = "tun_mode_note") {
+                        HintCard(text = stringResource(R.string.settings_tun_mode_note))
+                    }
+                }
+                groupedCardItems(
+                    keyPrefix = "settings_network",
+                    items = buildList {
                         add(CardItem("override") {
                             ArrowPreference(
                                 title = stringResource(R.string.settings_override_settings),
@@ -229,6 +243,13 @@ fun SettingsScreen(
                                 title = stringResource(R.string.settings_overrides),
                                 summary = stringResource(R.string.settings_overrides_summary),
                                 onClick = onNavigateOverrides,
+                            )
+                        })
+                        add(CardItem("rulesSettings") {
+                            ArrowPreference(
+                                title = stringResource(R.string.settings_rules_title),
+                                summary = stringResource(R.string.settings_rules_summary),
+                                onClick = onNavigateRulesSettings,
                             )
                         })
                         add(CardItem("backup") {

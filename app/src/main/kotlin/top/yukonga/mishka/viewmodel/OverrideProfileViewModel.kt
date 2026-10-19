@@ -117,12 +117,50 @@ class OverrideProfileViewModel(
             onComplete()
         }
 
+
     private suspend fun restartIfUsed(id: String) {
         if (repository.isUsedByCurrent(id)) restartCurrent()
     }
 
     private fun restartCurrent() {
         subscriptions.getActiveId()?.let(serviceController::restartWhenReady)
+    }
+
+    /**
+     * 规则设置页保存入口：确保名为 [name] 的本地 YAML 覆写存在并写入 [content]，
+     * 不存在则新建；随后确保它关联到 [subscriptionId]（追加到末尾，让它的 rules 最后生效）。
+     * 内容或关联发生变化、且是当前激活订阅时，触发按需重启使新规则生效。
+     */
+    fun saveRulesOverride(
+        subscriptionId: String,
+        name: String,
+        content: String,
+        onComplete: () -> Unit = {},
+    ) = launchOperation(R.string.error_save_failed) {
+        val existing = repository.profiles.value.find { it.name == name && it.format == OverrideFormat.Yaml }
+        var contentChanged = false
+        val id = if (existing != null) {
+            val old = runCatching { repository.readContent(existing.id) }.getOrNull()
+            if (old != content) {
+                repository.saveContent(existing.id, content)
+                contentChanged = true
+            }
+            existing.id
+        } else {
+            contentChanged = true
+            repository.addLocal(name, "rules.yaml", OverrideFormat.Yaml, content).id
+        }
+        val subscription = subscriptions.subscriptions.value.find { it.id == subscriptionId }
+        var selectionChanged = false
+        if (subscription != null && id !in subscription.overrideIds) {
+            val newIds = subscription.orderedOverrideIds + id
+            repository.setSelection(subscriptionId, newIds, newIds)
+            selectionChanged = true
+        }
+        if ((contentChanged || selectionChanged) && subscriptions.getActiveId() == subscriptionId) {
+            serviceController.restartWhenReady(subscriptionId)
+        }
+        onComplete()
     }
 
     private fun launchOperation(@StringRes errorKey: Int, block: suspend () -> Unit) {
