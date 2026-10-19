@@ -89,6 +89,7 @@ import top.yukonga.mishka.ui.screen.settings.FileManagerScreen
 import top.yukonga.mishka.ui.screen.settings.MetaSettingsScreen
 import top.yukonga.mishka.ui.screen.settings.NetworkSettingsScreen
 import top.yukonga.mishka.ui.screen.settings.RootSettingsScreen
+import top.yukonga.mishka.ui.screen.settings.RulesSettingsScreen
 import top.yukonga.mishka.ui.screen.settings.SettingsScreen
 import top.yukonga.mishka.ui.screen.settings.ThemeSettingsScreen
 import top.yukonga.mishka.ui.screen.settings.VpnSettingsScreen
@@ -434,6 +435,15 @@ fun AppNavigation(
                     )
                 }
             }
+            entry<Route.RulesSettings>(swipeDismiss = swipeDismiss) {
+                if (subscriptionViewModel != null && overrideProfileViewModel != null) {
+                    RulesSettingsScreen(
+                        subscriptionViewModel = subscriptionViewModel,
+                        overrideViewModel = overrideProfileViewModel,
+                        onBack = { navigator.pop() },
+                    )
+                }
+            }
             entry<Route.MetaSettings>(swipeDismiss = swipeDismiss) {
                 metaSettingsViewModel?.let {
                     MetaSettingsScreen(
@@ -610,6 +620,7 @@ private fun MainPage(
                     onNavigateThemeSettings = { navigator.push(Route.ThemeSettings) },
                     onNavigateFileManager = { navigator.push(Route.FileManager) },
                     onNavigateOverrides = { navigator.push(Route.OverrideList) },
+                    onNavigateRulesSettings = { navigator.push(Route.RulesSettings) },
                     onNavigateBackup = { navigator.push(Route.BackupRestore) },
                     onNavigateAbout = { navigator.push(Route.About) },
                     bootStartManager = bootStartManager,
