@@ -587,6 +587,13 @@
     <string name="meta_age_generate_hybrid">Generate Hybrid Key Pair</string>
     <string name="meta_age_generate_hybrid_summary">Post-quantum mlkem768-x25519 key pair</string>
     <string name="meta_age_keypair_title">Age Key Pair</string>
+    <string name="meta_geo_title">Geo Data</string>
+    <string name="meta_geo_update">Update Geo Data</string>
+    <string name="meta_geo_summary">Last updated: %1$s</string>
+    <string name="meta_geo_summary_missing">Data files missing</string>
+    <string name="meta_geo_updating">Downloading…</string>
+    <string name="meta_geo_update_done">Geo data updated. Restart the proxy to apply.</string>
+    <string name="meta_geo_update_failed">Geo data update failed: %1$s</string>
     <string name="meta_age_secret_key">Secret Key</string>
     <string name="meta_age_public_key">Public Key</string>
     <string name="meta_age_copy_secret">Copy Secret Key</string>

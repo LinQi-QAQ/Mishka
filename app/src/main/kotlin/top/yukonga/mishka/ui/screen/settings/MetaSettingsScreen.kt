@@ -74,6 +74,7 @@ fun MetaSettingsScreen(
     onBack: () -> Unit = {},
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
+    val geoState by viewModel.geoState.collectAsStateWithLifecycle()
     val scrollBehavior = MiuixScrollBehavior()
     val resetDoneMsg = stringResource(R.string.dialog_reset_done)
 
@@ -265,6 +266,24 @@ fun MetaSettingsScreen(
                             title = stringResource(R.string.meta_age_generate_hybrid),
                             summary = stringResource(R.string.meta_age_generate_hybrid_summary),
                             onClick = { genKey(true) },
+                        )
+                    },
+                ),
+            )
+
+            item { SmallTitle(text = stringResource(R.string.meta_geo_title)) }
+            groupedCardItems(
+                keyPrefix = "meta_geo",
+                items = listOf(
+                    CardItem("update") {
+                        ArrowPreference(
+                            title = stringResource(R.string.meta_geo_update),
+                            summary = if (geoState.isUpdating) {
+                                stringResource(R.string.meta_geo_updating)
+                            } else {
+                                geoState.summary
+                            },
+                            onClick = { viewModel.updateGeoData() },
                         )
                     },
                 ),
