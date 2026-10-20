@@ -54,7 +54,7 @@ object LanguageHelper {
             .edit().putString(StorageKeys.APP_LANGUAGE, code).apply()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             activity.getSystemService(LocaleManager::class.java)?.applicationLocales =
-                if (code.isEmpty()) LocaleList.getEmpty() else LocaleList.forLanguageTags(code)
+                if (code.isEmpty()) LocaleList() else LocaleList.forLanguageTags(code)
         } else {
             activity.recreate()
         }
