@@ -8,6 +8,7 @@ import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 import top.yukonga.mishka.R
+import top.yukonga.mishka.data.GeoDataUpdater
 import top.yukonga.mishka.data.api.MihomoConnectionManager
 import top.yukonga.mishka.data.api.RuleLatencyTester
 import top.yukonga.mishka.data.database.AppDatabase
@@ -44,6 +45,7 @@ val dataModule = module {
     single { OverrideProfileStore(get()) }
     single { ProfileTransformWriter(get(), get()) }
     single { SubscriptionProxyResolver(get(), get()) }
+    single { GeoDataUpdater(androidContext(), get()) }
     single<OverrideProfileRepository> {
         OverrideProfileRepositoryImpl(get(), get(), get(), get(), get(), get())
     }

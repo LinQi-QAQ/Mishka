@@ -606,6 +606,13 @@
     <string name="meta_age_generate_hybrid">產生後量子金鑰組</string>
     <string name="meta_age_generate_hybrid_summary">mlkem768-x25519 後量子金鑰組</string>
     <string name="meta_age_keypair_title">Age 金鑰組</string>
+    <string name="meta_geo_title">Geo 資料</string>
+    <string name="meta_geo_update">更新 Geo 資料</string>
+    <string name="meta_geo_summary">上次更新：%1$s</string>
+    <string name="meta_geo_summary_missing">資料檔案缺失</string>
+    <string name="meta_geo_updating">下載中…</string>
+    <string name="meta_geo_update_done">Geo 資料已更新，重新啟動代理後生效</string>
+    <string name="meta_geo_update_failed">Geo 資料更新失敗：%1$s</string>
     <string name="meta_age_secret_key">私鑰</string>
     <string name="meta_age_public_key">公鑰</string>
     <string name="meta_age_copy_secret">複製私鑰</string>

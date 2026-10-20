@@ -606,6 +606,13 @@
     <string name="meta_age_generate_hybrid">生成抗量子密钥对</string>
     <string name="meta_age_generate_hybrid_summary">mlkem768-x25519 抗量子密钥对</string>
     <string name="meta_age_keypair_title">Age 密钥对</string>
+    <string name="meta_geo_title">Geo 数据</string>
+    <string name="meta_geo_update">更新 Geo 数据</string>
+    <string name="meta_geo_summary">上次更新：%1$s</string>
+    <string name="meta_geo_summary_missing">数据文件缺失</string>
+    <string name="meta_geo_updating">下载中…</string>
+    <string name="meta_geo_update_done">Geo 数据已更新，重启代理后生效</string>
+    <string name="meta_geo_update_failed">Geo 数据更新失败：%1$s</string>
     <string name="meta_age_secret_key">私钥</string>
     <string name="meta_age_public_key">公钥</string>
     <string name="meta_age_copy_secret">复制私钥</string>
