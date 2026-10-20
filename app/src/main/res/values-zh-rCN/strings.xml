@@ -283,6 +283,9 @@
     <string name="settings_title">设置</string>
     <string name="settings_network">网络</string>
     <string name="settings_general">通用</string>
+    <string name="settings_language_title">语言</string>
+    <string name="settings_language_summary">界面语言，选择后立即生效</string>
+    <string name="settings_language_follow_system">跟随系统</string>
     <string name="settings_tun_mode">隧道模式</string>
     <string name="settings_tun_vpn_summary">通过 VpnService</string>
     <string name="settings_tun_root_tun_summary">自建 TUN 设备</string>

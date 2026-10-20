@@ -1,6 +1,7 @@
 package top.yukonga.mishka
 
 import android.app.Application
+import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.os.Build
 import android.os.Process
@@ -15,6 +16,7 @@ import top.yukonga.mishka.di.androidAppModule
 import top.yukonga.mishka.di.androidPlatformModule
 import top.yukonga.mishka.di.dataModule
 import top.yukonga.mishka.di.viewModelModule
+import top.yukonga.mishka.platform.LanguageHelper
 import top.yukonga.mishka.platform.PlatformStorage
 import top.yukonga.mishka.platform.StorageKeys
 import top.yukonga.mishka.platform.initToastPlatform
@@ -35,6 +37,10 @@ class MishkaApplication : Application() {
 
     // 自动更新闹钟随 imported 表对账，进程一起就接上（后台服务拉起的进程同样需要）
     private val updateScheduler: ProfileUpdateScheduler by inject()
+
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(LanguageHelper.wrapBaseContext(base))
+    }
 
     override fun onCreate() {
         super.onCreate()
