@@ -2,7 +2,7 @@ package top.yukonga.mishka.ui.screen.settings
 
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.DpSize
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
