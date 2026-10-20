@@ -297,6 +297,9 @@
     <string name="settings_title">設定</string>
     <string name="settings_network">網路</string>
     <string name="settings_general">一般</string>
+    <string name="settings_language_title">語言</string>
+    <string name="settings_language_summary">介面語言，選擇後立即生效</string>
+    <string name="settings_language_follow_system">跟隨系統</string>
     <string name="settings_tun_mode">通道模式</string>
     <string name="settings_tun_vpn_summary">透過 VpnService</string>
     <string name="settings_tun_root_tun_summary">自建 TUN 裝置</string>

@@ -1,5 +1,6 @@
 package top.yukonga.mishka.ui.screen.settings
 
+import android.app.Activity
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,12 +13,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import top.yukonga.mishka.BuildConfig
 import top.yukonga.mishka.R
 import top.yukonga.mishka.platform.BootStartManager
+import top.yukonga.mishka.platform.LanguageHelper
 import top.yukonga.mishka.platform.PlatformStorage
 import top.yukonga.mishka.platform.ProxyServiceBridge
 import top.yukonga.mishka.platform.StorageKeys
@@ -268,6 +271,28 @@ fun SettingsScreen(
                     keyPrefix = "settings_general",
                     outerBottomPadding = 12.dp,
                     items = buildList {
+                        add(CardItem("language") {
+                            val activity = LocalContext.current as? Activity
+                            val languageItems = LanguageHelper.LANGUAGES.map { lang ->
+                                if (lang.code.isEmpty()) stringResource(R.string.settings_language_follow_system)
+                                else lang.nativeName
+                            }
+                            var languageIndex by remember {
+                                mutableIntStateOf(activity?.let { LanguageHelper.getCurrentIndex(it) } ?: 0)
+                            }
+                            OverlayDropdownPreference(
+                                title = stringResource(R.string.settings_language_title),
+                                summary = stringResource(R.string.settings_language_summary),
+                                items = languageItems,
+                                selectedIndex = languageIndex,
+                                onSelectedIndexChange = { index ->
+                                    languageIndex = index
+                                    activity?.let {
+                                        LanguageHelper.setLanguage(it, LanguageHelper.LANGUAGES[index].code)
+                                    }
+                                },
+                            )
+                        })
                         if (onHideTaskCardChange != null) {
                             add(CardItem("hideTaskCard") {
                                 SwitchPreference(

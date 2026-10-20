@@ -310,6 +310,13 @@ private fun AboutContent(
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center,
             )
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                color = colorScheme.onSurfaceVariantSummary,
+                text = "For LinQi",
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center,
+            )
         }
 
         LazyColumn(
@@ -367,6 +374,7 @@ private fun AboutContent(
                         ) {
                             val ossProjects = remember(mihomoVersion) {
                                 listOf(
+                                    "Mishka for LinQi" to "https://github.com/LinQi-QAQ/Mishka",
                                     "Mishka" to "https://github.com/YuKongA/Mishka",
                                     (if (mihomoVersion.isNotEmpty()) "mihomo ($mihomoVersion)" else "mihomo") to "https://github.com/MetaCubeX/mihomo",
                                     "miuix" to "https://github.com/compose-miuix-ui/miuix",

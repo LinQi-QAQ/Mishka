@@ -297,6 +297,9 @@
     <string name="settings_title">Настройки</string>
     <string name="settings_network">Сеть</string>
     <string name="settings_general">Основные</string>
+    <string name="settings_language_title">Язык</string>
+    <string name="settings_language_summary">Язык интерфейса, применяется сразу</string>
+    <string name="settings_language_follow_system">Как в системе</string>
     <string name="settings_tun_mode">Режим туннеля</string>
     <string name="settings_tun_vpn_summary">через VpnService</string>
     <string name="settings_tun_root_tun_summary">собственное TUN-устройство</string>

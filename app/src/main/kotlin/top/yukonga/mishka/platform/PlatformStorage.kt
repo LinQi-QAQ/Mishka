@@ -109,6 +109,9 @@ object StorageKeys {
     const val SWIPE_DISMISS = "swipe_dismiss"
     const val HIDE_TASK_CARD = "hide_task_card"
 
+    // 应用内语言：空 = 跟随系统；否则为 BCP 47 语言标签，如 zh-CN / zh-TW / en / ru
+    const val APP_LANGUAGE = "app_language"
+
     // 一次性迁移标记
     const val MIGRATION_ROOT_RECLAIM_DONE = "migration_root_reclaim_done"
 
