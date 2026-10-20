@@ -22,7 +22,9 @@ import top.yukonga.mishka.domain.model.OverrideProfile
 import top.yukonga.mishka.domain.model.orderedOverrideIds
 import top.yukonga.mishka.domain.repository.OverrideProfileRepository
 import top.yukonga.mishka.domain.repository.SubscriptionRepository
+import top.yukonga.mishka.platform.PlatformStorage
 import top.yukonga.mishka.platform.ProxyServiceController
+import top.yukonga.mishka.platform.StorageKeys
 import top.yukonga.mishka.platform.showToast
 import top.yukonga.mishka.util.describe
 
@@ -37,6 +39,7 @@ class OverrideProfileViewModel(
     private val repository: OverrideProfileRepository,
     private val subscriptions: SubscriptionRepository,
     private val serviceController: ProxyServiceController,
+    private val storage: PlatformStorage,
     private val context: Context,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(OverrideProfileUiState(profiles = repository.profiles.value))
@@ -105,6 +108,9 @@ class OverrideProfileViewModel(
     fun delete(id: String) = launchOperation(R.string.error_save_failed) {
         val used = repository.isUsedByCurrent(id)
         repository.delete(id)
+        if (storage.getString(StorageKeys.RULES_OVERRIDE_ID, "") == id) {
+            storage.putString(StorageKeys.RULES_OVERRIDE_ID, "")
+        }
         if (used) restartCurrent()
     }
 
@@ -127,8 +133,23 @@ class OverrideProfileViewModel(
     }
 
     /**
-     * 规则设置页保存入口：确保名为 [name] 的本地 YAML 覆写存在并写入 [content]，
-     * 不存在则新建；随后确保它关联到 [subscriptionId]（追加到末尾，让它的 rules 最后生效）。
+     * 规则设置页覆写的锚点解析：优先按 [StorageKeys.RULES_OVERRIDE_ID] 持久化的 id 找——
+     * 覆写名是随界面语言变的本地化字符串，按名匹配在切换语言后失效。id 未命中时按当前
+     * 语言的 [name] 兜底（兼容旧版本按名创建的覆写），命中后回写 id 完成迁移。
+     */
+    fun resolveRulesOverride(name: String): OverrideProfile? {
+        val profiles = repository.profiles.value
+        val anchoredId = storage.getString(StorageKeys.RULES_OVERRIDE_ID, "")
+        profiles.find { it.id == anchoredId }?.let { return it }
+        val byName = profiles.find { it.name == name && it.format == OverrideFormat.Yaml }
+        if (byName != null) storage.putString(StorageKeys.RULES_OVERRIDE_ID, byName.id)
+        return byName
+    }
+
+    /**
+     * 规则设置页保存入口：确保 [resolveRulesOverride] 锚定的本地 YAML 覆写存在并写入
+     * [content]，不存在则以 [name] 新建并记下其 id 为锚点；随后确保它关联到
+     * [subscriptionId]（追加到末尾，让它的 rules 最后生效）。
      * 内容或关联发生变化、且是当前激活订阅时，触发按需重启使新规则生效。
      */
     fun saveRulesOverride(
@@ -137,7 +158,7 @@ class OverrideProfileViewModel(
         content: String,
         onComplete: () -> Unit = {},
     ) = launchOperation(R.string.error_save_failed) {
-        val existing = repository.profiles.value.find { it.name == name && it.format == OverrideFormat.Yaml }
+        val existing = resolveRulesOverride(name)
         var contentChanged = false
         val id = if (existing != null) {
             val old = runCatching { repository.readContent(existing.id) }.getOrNull()
@@ -148,7 +169,9 @@ class OverrideProfileViewModel(
             existing.id
         } else {
             contentChanged = true
-            repository.addLocal(name, "rules.yaml", OverrideFormat.Yaml, content).id
+            val created = repository.addLocal(name, "rules.yaml", OverrideFormat.Yaml, content)
+            storage.putString(StorageKeys.RULES_OVERRIDE_ID, created.id)
+            created.id
         }
         val subscription = subscriptions.subscriptions.value.find { it.id == subscriptionId }
         var selectionChanged = false

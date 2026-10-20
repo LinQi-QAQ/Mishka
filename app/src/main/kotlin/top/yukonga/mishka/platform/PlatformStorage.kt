@@ -32,6 +32,10 @@ object StorageKeys {
     // 更新 active 订阅后自动重启代理，默认开；理由见 ProxyServiceController.restartAfterProfileUpdate
     const val RESTART_AFTER_PROFILE_UPDATE = "restart_after_profile_update"
 
+    // 规则设置页专用覆写的 id 锚点：覆写名是随界面语言变的本地化字符串，
+    // 按名匹配在切换语言后失效，故持久化 id 按 id 锚定（见 OverrideProfileViewModel.resolveRulesOverride）
+    const val RULES_OVERRIDE_ID = "rules_override_id"
+
     // Wi-Fi 自动切换
     const val WIFI_POLICY_ENABLED = "wifi_policy_enabled"
     const val WIFI_POLICY_SSIDS = "wifi_policy_ssids"

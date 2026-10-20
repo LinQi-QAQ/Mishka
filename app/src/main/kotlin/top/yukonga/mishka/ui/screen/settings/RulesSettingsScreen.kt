@@ -100,8 +100,9 @@ private fun parseRulesYaml(yaml: String?): List<String>? {
     return result
 }
 
-private fun buildRulesYaml(rulesName: String, rules: List<String>): String = buildString {
-    appendLine("# 由「$rulesName」自动生成，会整体替换订阅自带的 rules")
+private fun buildRulesYaml(rules: List<String>): String = buildString {
+    // 固定文案不嵌覆写名：名字随界面语言变，嵌进文件会让切语言后保存被误判为内容变化
+    appendLine("# 由规则设置页自动生成，会整体替换订阅自带的 rules")
     appendLine("rules:")
     rules.forEach { appendLine("  - $it") }
 }
@@ -113,7 +114,7 @@ private suspend fun loadRules(
     subscriptionId: String,
     rulesName: String,
 ): List<String> = withContext(Dispatchers.IO) {
-    val overrideProfile = overrideViewModel.uiState.value.profiles.find { it.name == rulesName }
+    val overrideProfile = overrideViewModel.resolveRulesOverride(rulesName)
     val overrideYaml = overrideProfile?.let {
         runCatching { overrideViewModel.readContent(it.id) }.getOrNull()
     }
@@ -188,7 +189,7 @@ fun RulesSettingsScreen(
                                     overrideViewModel.saveRulesOverride(
                                         subscriptionId = id,
                                         name = rulesName,
-                                        content = buildRulesYaml(rulesName, rules),
+                                        content = buildRulesYaml(rules),
                                     )
                                 }
                             },

@@ -36,7 +36,7 @@ val viewModelModule = module {
         )
     }
     single { SubscriptionViewModel(get(), get(), get(), get(), androidContext()) }
-    single { OverrideProfileViewModel(get(), get(), get(), androidContext()) }
+    single { OverrideProfileViewModel(get(), get(), get(), get(), androidContext()) }
     single {
         ProxyViewModel(
             selectionDao = get(),
