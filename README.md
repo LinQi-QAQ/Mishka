@@ -1,8 +1,10 @@
 <div align="center">
 
-# Mishka
+# Sakura Clash
 
-**基于 [miuix](https://github.com/miuix-kotlin-multiplatform/miuix) 和 [mihomo](https://github.com/MetaCubeX/mihomo) 的 Android 代理客户端**
+**基于 [Mishka](https://github.com/YuKongA/Mishka) 定制的 Android 代理客户端**
+
+基于 [miuix](https://github.com/miuix-kotlin-multiplatform/miuix) 和 [mihomo](https://github.com/MetaCubeX/mihomo) 构建
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![minSdk](https://img.shields.io/badge/minSdk-31-3DDC84?logo=android&logoColor=white)](#)
@@ -15,6 +17,27 @@
 ## 简介
 
 采用 [mihomo](https://github.com/MetaCubeX/mihomo)（Clash.Meta）内核的 Android 代理客户端，UI 使用 [miuix](https://github.com/miuix-kotlin-multiplatform/miuix) + Jetpack Compose 构建，数据层 Room + Ktor + Koin。内核以子进程 + JNI 双通道集成，支持 **VPN**、**ROOT TUN**、**ROOT TPROXY** 三种隧道模式
+
+## 定制版说明
+
+这是我在 Mishka 基础上改的个人定制版，源码和原版一样按 GPL-3.0 开源。原版的功能都在（见下方「特性」），另外加了这些：
+
+**定制功能**
+
+- 独立的「规则设置」页：规则可增、删、清空，存为专用覆写，订阅更新不会冲掉 ✔️
+- 订阅可自定义排序：列表里上下移动调整顺序，会记住排好的次序 ✔️
+- 分享链接解析：粘贴机场的分享链接或整包订阅内容可直接导入（vless、vmess、trojan、ss、ssr、hysteria2、tuic、wireguard、anytls 等）✔️
+- 仿 NekoBox 的导入方式：添加页可选扫码、从相册识别二维码、剪贴板导入、文件导入、URL 导入或手动填写节点 ✔️
+- 链式代理：可勾选多个节点串成一条代理链，流量按顺序逐跳转发 ✔️
+- 应用内切换语言，不用再跟随系统的语言设置 ✔️
+- TLS 分片：把 TLS 握手的第一段拆开发送，绕开针对域名的连接重置（设置→Meta 设置里可开，可调每段大小与间隔）✔️
+- Geo 数据打包进安装包，也能在应用内单独更新 ✔️
+- 卡片液态玻璃 + 自定义壁纸：主页和各页卡片改成液态玻璃，主题设置里可调模糊半径与着色浓度；可自选一张图当整屏静态壁纸，顶栏直接透出壁纸，滑动切页时背景保持不动 ✔️
+- 订阅下载带浏览器 TLS 指纹，面板地址前加 Sakura 标识 ✔️
+
+**下载**：到 [Releases](../../releases) 页下载安装包。本仓库是个人自用定制，功能优先按自己的需求来，不保证适合所有人。
+
+---
 
 ## 特性
 
