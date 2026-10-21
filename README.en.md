@@ -82,7 +82,7 @@ This is my personal customized build on top of Mishka, open-sourced under GPL-3.
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/YuKongA/Mishka.git
+git clone https://github.com/LinQi-QAQ/Mishka.git
 cd Mishka
 
 # 2. Initialize submodules (mihomo fork + scripta editor)

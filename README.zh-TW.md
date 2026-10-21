@@ -82,7 +82,7 @@
 
 ```bash
 # 1. 複製倉庫
-git clone https://github.com/YuKongA/Mishka.git
+git clone https://github.com/LinQi-QAQ/Mishka.git
 cd Mishka
 
 # 2. 初始化子模組（mihomo fork + scripta 編輯器）
