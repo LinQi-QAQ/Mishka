@@ -104,7 +104,7 @@ adb shell am start -a top.yukonga.mishka.action.TOGGLE_PROXY \
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/YuKongA/Mishka.git
+git clone https://github.com/LinQi-QAQ/Mishka.git
 cd Mishka
 
 # 2. 初始化子模块（mihomo fork + scripta 编辑器）
