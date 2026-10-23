@@ -28,6 +28,7 @@ import io.github.g00fy2.quickie.QRResult
 import io.github.g00fy2.quickie.ScanCustomCode
 import io.github.g00fy2.quickie.config.BarcodeFormat
 import io.github.g00fy2.quickie.config.ScannerConfig
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.get
 import top.yukonga.mishka.data.api.MihomoConnectionManager
@@ -47,14 +48,15 @@ import top.yukonga.mishka.ui.theme.resolveIsDark
 import top.yukonga.mishka.viewmodel.AppProxyViewModel
 import top.yukonga.mishka.viewmodel.ConnectionViewModel
 import top.yukonga.mishka.viewmodel.DnsQueryViewModel
+import top.yukonga.mishka.viewmodel.AutomationViewModel
 import top.yukonga.mishka.viewmodel.ExternalControlViewModel
 import top.yukonga.mishka.viewmodel.HomeViewModel
 import top.yukonga.mishka.viewmodel.LogViewModel
 import top.yukonga.mishka.viewmodel.MetaSettingsViewModel
 import top.yukonga.mishka.viewmodel.NetworkSettingsViewModel
+import top.yukonga.mishka.viewmodel.OverrideProfileViewModel
 import top.yukonga.mishka.viewmodel.ProviderViewModel
 import top.yukonga.mishka.viewmodel.ProxyViewModel
-import top.yukonga.mishka.viewmodel.OverrideProfileViewModel
 import top.yukonga.mishka.viewmodel.SubscriptionViewModel
 
 private const val STATE_DEEPLINK_NONCE = "deeplink_nonce"
@@ -73,6 +75,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var networkSettingsViewModel: NetworkSettingsViewModel
     private lateinit var metaSettingsViewModel: MetaSettingsViewModel
     private lateinit var externalControlViewModel: ExternalControlViewModel
+    private lateinit var automationViewModel: AutomationViewModel
     private lateinit var appProxyViewModel: AppProxyViewModel
     private lateinit var filePicker: FilePicker
     private lateinit var scanQrLauncher: ActivityResultLauncher<ScannerConfig>
@@ -184,7 +187,8 @@ class MainActivity : ComponentActivity() {
         // 代理组图标下载走 mihomo mixed-port（Mishka 自身绕过 TUN，直连境外图标 CDN 极慢）；
         // 不受订阅走代理开关约束，代理运行中即生效
         val iconProxyResolver: SubscriptionProxyResolver = get()
-        top.yukonga.mishka.ui.platform.IconLoader.setProxyResolver {
+        val appScope: CoroutineScope = get()
+        top.yukonga.mishka.ui.platform.IconLoader.init(appScope) {
             iconProxyResolver.resolve(requireUserToggle = false)
         }
 
@@ -195,6 +199,7 @@ class MainActivity : ComponentActivity() {
         networkSettingsViewModel = get()
         metaSettingsViewModel = get()
         externalControlViewModel = get()
+        automationViewModel = get()
         appProxyViewModel = get()
         subscriptionViewModel = get()
         overrideProfileViewModel = get()
@@ -254,6 +259,7 @@ class MainActivity : ComponentActivity() {
                 networkSettingsViewModel = networkSettingsViewModel,
                 metaSettingsViewModel = metaSettingsViewModel,
                 externalControlViewModel = externalControlViewModel,
+                automationViewModel = automationViewModel,
                 appProxyViewModel = appProxyViewModel,
                 filePicker = filePicker,
                 storage = storage,

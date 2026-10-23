@@ -1,8 +1,8 @@
 package top.yukonga.mishka.ui.navigation
 
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -78,11 +78,16 @@ import top.yukonga.mishka.ui.screen.connection.ConnectionScreen
 import top.yukonga.mishka.ui.screen.dns.DnsQueryScreen
 import top.yukonga.mishka.ui.screen.home.HomeScreen
 import top.yukonga.mishka.ui.screen.log.LogScreen
+import top.yukonga.mishka.ui.screen.overrides.OverrideEditScreen
+import top.yukonga.mishka.ui.screen.overrides.OverrideFileEditorScreen
+import top.yukonga.mishka.ui.screen.overrides.OverrideListScreen
+import top.yukonga.mishka.ui.screen.overrides.SubscriptionOverridesScreen
 import top.yukonga.mishka.ui.screen.provider.ProviderScreen
 import top.yukonga.mishka.ui.screen.proxy.ProxyScreen
 import top.yukonga.mishka.ui.screen.settings.AboutScreen
 import top.yukonga.mishka.ui.screen.settings.AppProxyScreen
 import top.yukonga.mishka.ui.screen.settings.BackupRestoreScreen
+import top.yukonga.mishka.ui.screen.settings.AutomationScreen
 import top.yukonga.mishka.ui.screen.settings.ExternalControlScreen
 import top.yukonga.mishka.ui.screen.settings.FileManagerEditorScreen
 import top.yukonga.mishka.ui.screen.settings.FileManagerScreen
@@ -93,10 +98,6 @@ import top.yukonga.mishka.ui.screen.settings.SettingsScreen
 import top.yukonga.mishka.ui.screen.settings.ThemeSettingsScreen
 import top.yukonga.mishka.ui.screen.settings.VpnSettingsScreen
 import top.yukonga.mishka.ui.screen.settings.WifiPolicyScreen
-import top.yukonga.mishka.ui.screen.overrides.OverrideEditScreen
-import top.yukonga.mishka.ui.screen.overrides.OverrideFileEditorScreen
-import top.yukonga.mishka.ui.screen.overrides.OverrideListScreen
-import top.yukonga.mishka.ui.screen.overrides.SubscriptionOverridesScreen
 import top.yukonga.mishka.ui.screen.subscription.SubscriptionAddScreen
 import top.yukonga.mishka.ui.screen.subscription.SubscriptionAddUrlScreen
 import top.yukonga.mishka.ui.screen.subscription.SubscriptionEditScreen
@@ -111,15 +112,16 @@ import top.yukonga.mishka.viewmodel.AppProxyViewModel
 import top.yukonga.mishka.viewmodel.BackupViewModel
 import top.yukonga.mishka.viewmodel.ConnectionViewModel
 import top.yukonga.mishka.viewmodel.DnsQueryViewModel
+import top.yukonga.mishka.viewmodel.AutomationViewModel
 import top.yukonga.mishka.viewmodel.ExternalControlViewModel
 import top.yukonga.mishka.viewmodel.HomeUiState
 import top.yukonga.mishka.viewmodel.HomeViewModel
 import top.yukonga.mishka.viewmodel.LogViewModel
 import top.yukonga.mishka.viewmodel.MetaSettingsViewModel
 import top.yukonga.mishka.viewmodel.NetworkSettingsViewModel
+import top.yukonga.mishka.viewmodel.OverrideProfileViewModel
 import top.yukonga.mishka.viewmodel.ProviderViewModel
 import top.yukonga.mishka.viewmodel.ProxyViewModel
-import top.yukonga.mishka.viewmodel.OverrideProfileViewModel
 import top.yukonga.mishka.viewmodel.SubscriptionViewModel
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
 import top.yukonga.miuix.kmp.basic.Icon
@@ -198,6 +200,7 @@ fun AppNavigation(
     networkSettingsViewModel: NetworkSettingsViewModel? = null,
     metaSettingsViewModel: MetaSettingsViewModel? = null,
     externalControlViewModel: ExternalControlViewModel? = null,
+    automationViewModel: AutomationViewModel? = null,
     appProxyViewModel: AppProxyViewModel? = null,
     filePicker: FilePicker? = null,
     storage: PlatformStorage? = null,
@@ -484,6 +487,14 @@ fun AppNavigation(
                     )
                 }
             }
+            entry<Route.Automation>(swipeDismiss = swipeDismiss) {
+                automationViewModel?.let {
+                    AutomationScreen(
+                        viewModel = it,
+                        onBack = { navigator.pop() },
+                    )
+                }
+            }
             entry<Route.BackupRestore>(swipeDismiss = swipeDismiss) {
                 if (backupViewModel != null && storage != null) {
                     BackupRestoreScreen(
@@ -605,6 +616,7 @@ private fun MainPage(
                     onNavigateNetworkSettings = { navigator.push(Route.NetworkSettings) },
                     onNavigateMetaSettings = { navigator.push(Route.MetaSettings) },
                     onNavigateExternalControl = { navigator.push(Route.ExternalControl) },
+                    onNavigateAutomation = { navigator.push(Route.Automation) },
                     onNavigateAppProxy = { navigator.push(Route.AppProxy) },
                     onNavigateWifiPolicy = { navigator.push(Route.WifiPolicy) },
                     onNavigateThemeSettings = { navigator.push(Route.ThemeSettings) },

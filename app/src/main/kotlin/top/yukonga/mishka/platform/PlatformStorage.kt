@@ -50,6 +50,10 @@ object StorageKeys {
     const val VPN_SYSTEM_PROXY = "vpn_system_proxy"
     const val VPN_ALLOW_IPV6 = "vpn_allow_ipv6"
 
+    // 外部应用能否通过 intent 控制代理，默认关。四个导出 action 没有调用方校验，任何应用都能发；
+    // 磁贴由系统绑定、内部跳板走应用内调用，两者都不经过此开关
+    const val EXTERNAL_CONTROL_ALLOWED = "external_control_allowed"
+
     // 分应用代理
     const val APP_PROXY_MODE = "app_proxy_mode"
     const val APP_PROXY_PACKAGES = "app_proxy_packages"
@@ -69,9 +73,7 @@ object StorageKeys {
     // 极端 ROM 下 TUN 到上游分片异常时可关（回退 mtu=1500、gso=false）
     const val ROOT_TUN_JUMBO_MTU = "root_tun_jumbo_mtu"
 
-    // attach 路径强制 re-apply 热点/TPROXY 规则开关：
-    // 默认 false → 先 probe anyRulesPresent()，规则齐全则 skip re-apply（避免无谓 teardown+apply）；
-    // true → 强制 re-apply，覆盖"第三方模块清掉过规则"的场景，诊断用
+    // 仅额外强制重建 ROOT TUN 热点数据规则；DNS 与本机 TPROXY 在 attach 时始终重建。
     const val ROOT_ATTACH_FORCE_REAPPLY = "root_attach_force_reapply"
 
     // 上次启动时探测 xt_TPROXY 的结果（"true"/"false"/""），仅在 PROXY 或 ROOT TPROXY
@@ -81,12 +83,10 @@ object StorageKeys {
 
     // 代理页设置
     const val PROXY_NODE_SORT_OPTION = "proxy_node_sort_option"
+    const val PROXY_GROUP_SHOW_ICONS = "proxy_group_show_icons"
 
     // 节点单列显示，默认 false（每行 2 个）
     const val PROXY_NODE_SINGLE_COLUMN = "proxy_node_single_column"
-
-    // 非全局模式下 GLOBAL 组是否留在列表里；全局模式无视此开关强制显示
-    const val PROXY_SHOW_GLOBAL_GROUP = "proxy_show_global_group"
 
     // 通用设置
     const val DARK_MODE = "dark_mode"
@@ -104,6 +104,7 @@ object StorageKeys {
     const val NAV_RAIL_EXPANDED = "nav_rail_expanded"
     const val DYNAMIC_NOTIFICATION = "dynamic_notification"
     const val PREDICTIVE_BACK = "predictive_back"
+
     // 横移返回手势，默认启用；由 AppNavigation 持有状态实时生效，这里只作持久化
     const val SWIPE_DISMISS = "swipe_dismiss"
     const val HIDE_TASK_CARD = "hide_task_card"
