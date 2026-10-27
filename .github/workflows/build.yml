@@ -6,6 +6,7 @@ on:
       - "**.md"
     branches:
       - main
+      - custom-rules-ui
   pull_request:
     branches:
       - main
@@ -19,6 +20,8 @@ jobs:
   build-apk:
     name: Build APK
     runs-on: ubuntu-latest
+    env:
+      HAS_SIGNING_KEY: ${{ secrets.SIGNING_KEY != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -42,7 +45,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Decode Android signing key
-        if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+        if: env.HAS_SIGNING_KEY == 'true'
         env:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
         run: echo "$SIGNING_KEY" | base64 -d > keystore.jks
@@ -54,6 +57,7 @@ jobs:
         run: ./gradlew :app:assembleDebug
 
       - name: Build Release APK
+        if: env.HAS_SIGNING_KEY == 'true'
         run: ./gradlew :app:assembleRelease
         env:
           KEYSTORE_PATH: "${{ github.workspace }}/keystore.jks"
@@ -90,6 +94,7 @@ jobs:
           archive: false
 
       - name: Upload Release APK (arm64-v8a)
+        if: env.HAS_SIGNING_KEY == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: Mishka-release-arm64-v8a
@@ -97,6 +102,7 @@ jobs:
           archive: false
 
       - name: Upload Release APK (armeabi-v7a)
+        if: env.HAS_SIGNING_KEY == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: Mishka-release-armeabi-v7a
@@ -104,6 +110,7 @@ jobs:
           archive: false
 
       - name: Upload Release APK (x86_64)
+        if: env.HAS_SIGNING_KEY == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: Mishka-release-x86_64
@@ -111,6 +118,7 @@ jobs:
           archive: false
 
       - name: Upload Release APK (x86)
+        if: env.HAS_SIGNING_KEY == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: Mishka-release-x86
