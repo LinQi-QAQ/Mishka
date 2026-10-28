@@ -56,9 +56,9 @@ jobs:
       - name: Build Debug APK
         run: ./gradlew :app:assembleDebug
 
-      - name: Build Release APK
+      - name: Build Stable Release APK
         if: env.HAS_SIGNING_KEY == 'true'
-        run: ./gradlew :app:assembleRelease
+        run: ./gradlew :app:assembleStableRelease
         env:
           KEYSTORE_PATH: "${{ github.workspace }}/keystore.jks"
           KEYSTORE_PASS: ${{ secrets.KEY_STORE_PASSWORD }}
@@ -68,51 +68,51 @@ jobs:
       - name: Upload Debug APK (arm64-v8a)
         uses: actions/upload-artifact@v7
         with:
-          name: Mishka-debug-arm64-v8a
+          name: SakuraClash-debug-arm64-v8a
           path: app/build/outputs/apk/*/debug/*-arm64-v8a-*.apk
 
       - name: Upload Debug APK (armeabi-v7a)
         uses: actions/upload-artifact@v7
         with:
-          name: Mishka-debug-armeabi-v7a
+          name: SakuraClash-debug-armeabi-v7a
           path: app/build/outputs/apk/*/debug/*-armeabi-v7a-*.apk
 
       - name: Upload Debug APK (x86_64)
         uses: actions/upload-artifact@v7
         with:
-          name: Mishka-debug-x86_64
+          name: SakuraClash-debug-x86_64
           path: app/build/outputs/apk/*/debug/*-x86_64-*.apk
 
       - name: Upload Debug APK (x86)
         uses: actions/upload-artifact@v7
         with:
-          name: Mishka-debug-x86
+          name: SakuraClash-debug-x86
           path: app/build/outputs/apk/*/debug/*-x86-*.apk
 
       - name: Upload Release APK (arm64-v8a)
         if: env.HAS_SIGNING_KEY == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: Mishka-release-arm64-v8a
+          name: SakuraClash-stable-arm64-v8a
           path: app/build/outputs/apk/*/release/*-arm64-v8a-*.apk
 
       - name: Upload Release APK (armeabi-v7a)
         if: env.HAS_SIGNING_KEY == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: Mishka-release-armeabi-v7a
+          name: SakuraClash-stable-armeabi-v7a
           path: app/build/outputs/apk/*/release/*-armeabi-v7a-*.apk
 
       - name: Upload Release APK (x86_64)
         if: env.HAS_SIGNING_KEY == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: Mishka-release-x86_64
+          name: SakuraClash-stable-x86_64
           path: app/build/outputs/apk/*/release/*-x86_64-*.apk
 
       - name: Upload Release APK (x86)
         if: env.HAS_SIGNING_KEY == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: Mishka-release-x86
+          name: SakuraClash-stable-x86
           path: app/build/outputs/apk/*/release/*-x86-*.apk
