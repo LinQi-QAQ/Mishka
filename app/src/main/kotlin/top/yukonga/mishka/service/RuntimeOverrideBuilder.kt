@@ -23,7 +23,7 @@ import java.io.File
 object RuntimeOverrideBuilder {
 
     private const val FILE_NAME = "override.run.json"
-    internal const val DEFAULT_TUN_DEVICE = "Mishka"
+    internal const val DEFAULT_TUN_DEVICE = "SakuraClash"
 
     // VPN/ROOT TUN 共用 MTU。VpnService.Builder.setMtu 与 sing-tun cfg.Tun.MTU 必须同值：
     // sing-tun 在 fd 模式用 cfg.Tun.MTU 给 gvisor fdbased.New 设 endpoint 缓冲，0 时所有 read 失败。

@@ -1,9 +1,11 @@
 package top.yukonga.mishka.ui.screen.home
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,6 +23,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import top.yukonga.mishka.R
 import top.yukonga.mishka.ui.component.AdaptiveTopAppBar
 import top.yukonga.mishka.ui.component.blur.BlurredBar
+import top.yukonga.mishka.ui.component.blur.CardGlassBackground
+import top.yukonga.mishka.ui.component.blur.LocalCardBackdrop
+import top.yukonga.mishka.ui.component.blur.LocalCardBackgroundImage
 import top.yukonga.mishka.ui.component.blur.rememberBlurBackdrop
 import top.yukonga.mishka.ui.util.WideContentBox
 import top.yukonga.mishka.util.formatUptime
@@ -65,6 +70,11 @@ fun HomeScreen(
     val uptime = formatUptime(uptimeSeconds)
 
     val backdrop = rememberBlurBackdrop()
+    val cardBackdrop = rememberBlurBackdrop()
+    // 设了壁纸时主页壁纸由 MainPage 的静态层统一绘制并记录，卡片改采样上层传入的 backdrop
+    val hasWallpaper = LocalCardBackgroundImage.current != null
+    val inheritedCardBackdrop = LocalCardBackdrop.current
+    val effectiveCardBackdrop = if (hasWallpaper) inheritedCardBackdrop else cardBackdrop
     val blurActive = backdrop != null
     val barColor = if (blurActive) Color.Transparent else MiuixTheme.colorScheme.surface
     var showSubscriptionTraffic by rememberSaveable { mutableStateOf(false) }
@@ -86,69 +96,78 @@ fun HomeScreen(
         if (!uiState.isRunning) showSpeedDetail = false
     }
 
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            BlurredBar(backdrop = backdrop, blurActive = blurActive) {
-                AdaptiveTopAppBar(
-                    title = stringResource(R.string.app_name),
-                    color = barColor,
-                    scrollBehavior = scrollBehavior,
-                )
-            }
-        },
-    ) { innerPadding ->
-        WideContentBox { sidePadding ->
-            LazyColumn(
-                modifier = Modifier
+    CompositionLocalProvider(LocalCardBackdrop provides effectiveCardBackdrop) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            modifier = modifier,
+            topBar = {
+                BlurredBar(backdrop = backdrop, blurActive = blurActive) {
+                    AdaptiveTopAppBar(
+                        title = stringResource(R.string.app_name),
+                        color = barColor,
+                        scrollBehavior = scrollBehavior,
+                    )
+                }
+            },
+        ) { innerPadding ->
+            Box(
+                Modifier
                     .fillMaxSize()
-                    .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
-                    .scrollEndHaptic()
-                    .overScrollVertical()
-                    .nestedScroll(scrollBehavior.nestedScrollConnection),
-                contentPadding = PaddingValues(
-                    top = innerPadding.calculateTopPadding(),
-                    bottom = bottomPadding,
-                    start = sidePadding,
-                    end = sidePadding,
-                ),
-            ) {
-                statusSection(
-                    state = uiState,
-                    uptime = uptime,
-                    onSwitchMode = onSwitchMode,
-                    onSwitchTunStack = onSwitchTunStack,
-                )
-                actionButtonsSection(
-                    onRestart = onRestart,
-                    onStop = onStop,
-                    onReload = onReload,
-                    onStart = onStartProxy,
-                    isRunning = uiState.isRunning,
-                    isStarting = uiState.isStarting,
-                    isStopping = uiState.isStopping,
-                )
-                overviewCardsSection(
-                    speed = speed,
-                    state = uiState,
-                    onSpeedClick = { showSpeedDetail = true },
-                    onSubscriptionClick = {
-                        showSubscriptionTraffic = true
-                        viewModel?.refreshProviderTraffic()
-                    },
-                )
-                systemCardsSection(
-                    memory = memory,
-                    systemInfo = systemInfo,
-                )
-                latencySection(uiState, onTestLatency)
-                quickEntriesSection(
-                    isRunning = uiState.isRunning,
-                    onNavigateLog = onNavigateLog,
-                    onNavigateProvider = onNavigateProvider,
-                    onNavigateConnection = onNavigateConnection,
-                    onNavigateDnsQuery = onNavigateDnsQuery,
-                )
+                                ) {
+                if (!hasWallpaper) CardGlassBackground(cardBackdrop)
+                WideContentBox { sidePadding ->
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
+                            .scrollEndHaptic()
+                            .overScrollVertical()
+                            .nestedScroll(scrollBehavior.nestedScrollConnection),
+                        contentPadding = PaddingValues(
+                            top = innerPadding.calculateTopPadding(),
+                            bottom = bottomPadding,
+                            start = sidePadding,
+                            end = sidePadding,
+                        ),
+                    ) {
+                        statusSection(
+                            state = uiState,
+                            uptime = uptime,
+                            onSwitchMode = onSwitchMode,
+                            onSwitchTunStack = onSwitchTunStack,
+                        )
+                        actionButtonsSection(
+                            onRestart = onRestart,
+                            onStop = onStop,
+                            onReload = onReload,
+                            onStart = onStartProxy,
+                            isRunning = uiState.isRunning,
+                            isStarting = uiState.isStarting,
+                            isStopping = uiState.isStopping,
+                        )
+                        overviewCardsSection(
+                            speed = speed,
+                            state = uiState,
+                            onSpeedClick = { showSpeedDetail = true },
+                            onSubscriptionClick = {
+                                showSubscriptionTraffic = true
+                                viewModel?.refreshProviderTraffic()
+                            },
+                        )
+                        systemCardsSection(
+                            memory = memory,
+                            systemInfo = systemInfo,
+                        )
+                        latencySection(uiState, onTestLatency)
+                        quickEntriesSection(
+                            isRunning = uiState.isRunning,
+                            onNavigateLog = onNavigateLog,
+                            onNavigateProvider = onNavigateProvider,
+                            onNavigateConnection = onNavigateConnection,
+                            onNavigateDnsQuery = onNavigateDnsQuery,
+                        )
+                    }
+                }
             }
         }
     }

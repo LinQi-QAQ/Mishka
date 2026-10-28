@@ -34,6 +34,9 @@ interface SubscriptionRepository {
     /** 保存订阅选择的覆写 ID 与执行顺序。 */
     suspend fun setOverrideSelection(subscriptionId: String, overrideIds: List<String>, sortPreference: List<String>)
 
+    /** 保存用户自定义的订阅排列顺序（订阅 ID 名单）；不在名单内的订阅按创建时间排在其后。 */
+    suspend fun reorderSubscriptions(orderedIds: List<String>)
+
     suspend fun create(
         type: ProfileType,
         name: String,

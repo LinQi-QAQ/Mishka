@@ -4,6 +4,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -47,7 +48,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -65,13 +65,19 @@ import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import top.yukonga.mishka.DeepLinkImportRequest
+import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
 import top.yukonga.mishka.R
 import top.yukonga.mishka.platform.BootStartManager
 import top.yukonga.mishka.platform.FilePicker
+import top.yukonga.mishka.platform.QrImageDecoder
 import top.yukonga.mishka.platform.PlatformStorage
 import top.yukonga.mishka.platform.StorageKeys
 import top.yukonga.mishka.platform.WifiPolicyController
 import top.yukonga.mishka.ui.component.blur.BlurredBar
+import top.yukonga.mishka.ui.component.blur.CardGlassBackground
+import top.yukonga.mishka.ui.component.blur.LocalCardBackdrop
+import top.yukonga.mishka.ui.component.blur.CardGlassBackground
 import top.yukonga.mishka.ui.component.blur.rememberBlurBackdrop
 import top.yukonga.mishka.ui.component.liquid.IosLiquidGlassNavigationBar
 import top.yukonga.mishka.ui.screen.connection.ConnectionScreen
@@ -89,6 +95,7 @@ import top.yukonga.mishka.ui.screen.settings.FileManagerScreen
 import top.yukonga.mishka.ui.screen.settings.MetaSettingsScreen
 import top.yukonga.mishka.ui.screen.settings.NetworkSettingsScreen
 import top.yukonga.mishka.ui.screen.settings.RootSettingsScreen
+import top.yukonga.mishka.ui.screen.settings.RulesSettingsScreen
 import top.yukonga.mishka.ui.screen.settings.SettingsScreen
 import top.yukonga.mishka.ui.screen.settings.ThemeSettingsScreen
 import top.yukonga.mishka.ui.screen.settings.VpnSettingsScreen
@@ -97,7 +104,11 @@ import top.yukonga.mishka.ui.screen.overrides.OverrideEditScreen
 import top.yukonga.mishka.ui.screen.overrides.OverrideFileEditorScreen
 import top.yukonga.mishka.ui.screen.overrides.OverrideListScreen
 import top.yukonga.mishka.ui.screen.overrides.SubscriptionOverridesScreen
+import top.yukonga.mishka.ui.platform.getPlainText
 import top.yukonga.mishka.ui.screen.subscription.SubscriptionAddScreen
+import top.yukonga.mishka.ui.screen.subscription.SubscriptionChainScreen
+import top.yukonga.mishka.ui.screen.subscription.SubscriptionManualEditScreen
+import top.yukonga.mishka.ui.screen.subscription.SubscriptionManualScreen
 import top.yukonga.mishka.ui.screen.subscription.SubscriptionAddUrlScreen
 import top.yukonga.mishka.ui.screen.subscription.SubscriptionEditScreen
 import top.yukonga.mishka.ui.screen.subscription.SubscriptionScreen
@@ -121,6 +132,8 @@ import top.yukonga.mishka.viewmodel.ProviderViewModel
 import top.yukonga.mishka.viewmodel.ProxyViewModel
 import top.yukonga.mishka.viewmodel.OverrideProfileViewModel
 import top.yukonga.mishka.viewmodel.SubscriptionViewModel
+import top.yukonga.mishka.viewmodel.ImportTextKind
+import top.yukonga.mishka.viewmodel.classifyImportText
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.NavigationBar
@@ -202,7 +215,6 @@ fun AppNavigation(
     filePicker: FilePicker? = null,
     storage: PlatformStorage? = null,
     bootStartManager: BootStartManager? = null,
-    mihomoVersion: String = "",
     onScanQR: ((callback: (String?) -> Unit) -> Unit)? = null,
     wifiPolicyController: WifiPolicyController? = null,
     onRequestWifiPermission: (((Boolean) -> Unit) -> Unit)? = null,
@@ -260,11 +272,18 @@ fun AppNavigation(
     }
     val swipeDismiss = if (swipeDismissEnabled) swipeBackDirection else null
 
+    // 二级页统一的卡片玻璃背景：铺在 NavDisplay 背后录入 navCardBackdrop，
+    // 各二级页的卡片采样它（背景层不含卡片，避免 RenderNode 自引用崩溃）；
+    // 主页四 Tab 有各自的 provider，近者优先、互不影响
+    val navCardBackdrop = rememberBlurBackdrop()
     CompositionLocalProvider(
         LocalNavigator provides navigator,
         LocalMainPagerState provides mainPagerState,
+        LocalCardBackdrop provides navCardBackdrop,
     ) {
-        NavDisplay(
+        Box(Modifier.fillMaxSize()) {
+            CardGlassBackground(navCardBackdrop)
+            NavDisplay(
             backStack = backStack,
             onBack = { navigator.pop() },
             effects = NavDisplayEffects(
@@ -287,6 +306,48 @@ fun AppNavigation(
                 )
             }
             entry<Route.SubscriptionAdd>(swipeDismiss = swipeDismiss) {
+                val importContext = LocalContext.current
+                // 剪贴簿 / 扫码 / 相册识别得到的文本统一在这里分类：
+                // 订阅地址去 URL 表单，分享链接直接建本地配置，其余在添加页报错卡提示
+                val handleImportedText: (String) -> Unit = { text ->
+                    val vm = subscriptionViewModel
+                    if (vm != null) {
+                        when (classifyImportText(text)) {
+                            ImportTextKind.Url -> navigator.push(
+                                Route.SubscriptionAddUrl(initialUrl = text.trim())
+                            )
+
+                            ImportTextKind.Links -> vm.addFromLinks(
+                                name = "",
+                                content = text,
+                                onComplete = {
+                                    navigator.popUntil { key -> key is Route.Main }
+                                },
+                            )
+
+                            ImportTextKind.Invalid -> vm.showImportMessage(
+                                R.string.subscription_import_invalid
+                            )
+                        }
+                    }
+                }
+                val addClipboard = LocalClipboard.current
+                LaunchedEffect(Unit) {
+                    // 「自动从剪贴板加入」开启时：进添加页读一次剪贴板，
+                    // 内容可识别且与上次自动导入的不同才导入，避免反复触发
+                    if (storage?.getString(StorageKeys.AUTO_CLIPBOARD_IMPORT, "false") == "true") {
+                        val text = addClipboard.getPlainText()?.trim().orEmpty()
+                        if (text.isNotEmpty() &&
+                            classifyImportText(text) != ImportTextKind.Invalid
+                        ) {
+                            val hash = text.hashCode().toString()
+                            if (storage?.getString(StorageKeys.AUTO_CLIPBOARD_LAST_HASH, "") != hash) {
+                                storage?.putString(StorageKeys.AUTO_CLIPBOARD_LAST_HASH, hash)
+                                handleImportedText(text)
+                            }
+                        }
+                    }
+                }
                 SubscriptionAddScreen(
                     viewModel = subscriptionViewModel,
                     onBack = { navigator.pop() },
@@ -306,13 +367,71 @@ fun AppNavigation(
                     onNavigateUrl = { navigator.push(Route.SubscriptionAddUrl()) },
                     onScanQR = if (onScanQR != null) {
                         {
-                            onScanQR { url ->
-                                if (url != null) {
-                                    navigator.push(Route.SubscriptionAddUrl(initialUrl = url))
+                            onScanQR { text ->
+                                if (text != null) {
+                                    handleImportedText(text)
                                 }
                             }
                         }
                     } else null,
+                    onPickGalleryQr = {
+                        filePicker?.pickImage { uri ->
+                            if (uri != null) {
+                                QrImageDecoder.decode(importContext, uri) { text ->
+                                    if (text != null) {
+                                        handleImportedText(text)
+                                    } else {
+                                        subscriptionViewModel?.showImportMessage(
+                                            R.string.qr_gallery_not_found
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    onClipboardImport = handleImportedText,
+                    onNavigateManual = { navigator.push(Route.SubscriptionManual) },
+                )
+            }
+            entry<Route.SubscriptionManual>(swipeDismiss = swipeDismiss) {
+                var autoClipboard by remember {
+                    mutableStateOf(
+                        storage?.getString(StorageKeys.AUTO_CLIPBOARD_IMPORT, "false") == "true"
+                    )
+                }
+                SubscriptionManualScreen(
+                    onBack = { navigator.pop() },
+                    onPickProtocol = { protocol ->
+                        navigator.push(Route.SubscriptionManualEdit(protocol = protocol))
+                    },
+                    autoClipboard = autoClipboard,
+                    onAutoClipboardChange = { enabled ->
+                        autoClipboard = enabled
+                        storage?.putString(StorageKeys.AUTO_CLIPBOARD_IMPORT, enabled.toString())
+                    },
+                    onNavigateChain = { navigator.push(Route.SubscriptionChain) },
+                )
+            }
+            entry<Route.SubscriptionChain>(swipeDismiss = swipeDismiss) {
+                SubscriptionChainScreen(
+                    viewModel = subscriptionViewModel,
+                    onBack = { navigator.pop() },
+                    onSaved = { navigator.popUntil { key -> key is Route.Main } },
+                )
+            }
+            entry<Route.SubscriptionManualEdit>(swipeDismiss = swipeDismiss) { route ->
+                SubscriptionManualEditScreen(
+                    protocol = route.protocol,
+                    onBack = { navigator.pop() },
+                    onSave = { name, link ->
+                        subscriptionViewModel?.addFromLinks(
+                            name = name,
+                            content = link,
+                            onComplete = {
+                                navigator.popUntil { key -> key is Route.Main }
+                            },
+                        )
+                    },
                 )
             }
             entry<Route.SubscriptionAddUrl>(swipeDismiss = swipeDismiss) { route ->
@@ -434,6 +553,15 @@ fun AppNavigation(
                     )
                 }
             }
+            entry<Route.RulesSettings>(swipeDismiss = swipeDismiss) {
+                if (subscriptionViewModel != null && overrideProfileViewModel != null) {
+                    RulesSettingsScreen(
+                        subscriptionViewModel = subscriptionViewModel,
+                        overrideViewModel = overrideProfileViewModel,
+                        onBack = { navigator.pop() },
+                    )
+                }
+            }
             entry<Route.MetaSettings>(swipeDismiss = swipeDismiss) {
                 metaSettingsViewModel?.let {
                     MetaSettingsScreen(
@@ -513,13 +641,9 @@ fun AppNavigation(
                 )
             }
             entry<Route.About>(swipeDismiss = swipeDismiss) {
-                val uriHandler = LocalUriHandler.current
-                AboutScreen(
-                    onBack = { navigator.pop() },
-                    mihomoVersion = mihomoVersion,
-                    onOpenUrl = { url -> uriHandler.openUri(url) },
-                )
+                AboutScreen(onBack = { navigator.pop() })
             }
+        }
         }
     }
 }
@@ -610,6 +734,7 @@ private fun MainPage(
                     onNavigateThemeSettings = { navigator.push(Route.ThemeSettings) },
                     onNavigateFileManager = { navigator.push(Route.FileManager) },
                     onNavigateOverrides = { navigator.push(Route.OverrideList) },
+                    onNavigateRulesSettings = { navigator.push(Route.RulesSettings) },
                     onNavigateBackup = { navigator.push(Route.BackupRestore) },
                     onNavigateAbout = { navigator.push(Route.About) },
                     bootStartManager = bootStartManager,
@@ -681,6 +806,8 @@ private fun MainPage(
         }
     } else {
         val bottomBarBackdrop = rememberBlurBackdrop(themeConfig.blurEnabled)
+        // 主页卡片专用 backdrop：设了壁纸时录的是下方静态壁纸层（不含卡片自身，无自引用）
+        val mainCardBackdrop = rememberBlurBackdrop(themeConfig.blurEnabled)
         val bottomBarBlurActive = bottomBarBackdrop != null
         val barColor = if (bottomBarBlurActive) Color.Transparent else MiuixTheme.colorScheme.surface
         val floatingBarColor = if (bottomBarBlurActive) Color.Transparent else MiuixTheme.colorScheme.surfaceContainer
@@ -720,6 +847,7 @@ private fun MainPage(
         )
 
         Scaffold(
+            containerColor = Color.Transparent,
             modifier = Modifier.fillMaxSize(),
             bottomBar = {
                 if (themeConfig.floatingBottomBar) {
@@ -773,16 +901,35 @@ private fun MainPage(
                 }
             },
         ) { padding ->
-            pagerContent(
-                if (bottomBarBackdrop != null) {
-                    Modifier
-                        .fillMaxSize()
-                        .layerBackdrop(bottomBarBackdrop)
-                } else {
-                    Modifier.fillMaxSize()
-                },
-                padding.calculateBottomPadding(),
-            )
+            CompositionLocalProvider(LocalCardBackdrop provides mainCardBackdrop) {
+                Box(Modifier.fillMaxSize()) {
+                    // 静态壁纸层在 pager 之下：钉在屏幕上，切页/滚动都不带动它；
+                    // 外层把同一份渲染录进底栏 backdrop，内层录进主页卡片 backdrop
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .then(
+                                if (bottomBarBackdrop != null) {
+                                    Modifier.layerBackdrop(bottomBarBackdrop)
+                                } else {
+                                    Modifier
+                                }
+                            ),
+                    ) {
+                        CardGlassBackground(mainCardBackdrop)
+                    }
+                    pagerContent(
+                        if (bottomBarBackdrop != null) {
+                            Modifier
+                                .fillMaxSize()
+                                .layerBackdrop(bottomBarBackdrop)
+                        } else {
+                            Modifier.fillMaxSize()
+                        },
+                        padding.calculateBottomPadding(),
+                    )
+                }
+            }
         }
     }
 }

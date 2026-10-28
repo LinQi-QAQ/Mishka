@@ -115,6 +115,7 @@ fun ConnectionScreen(
     val barColor = if (blurActive) Color.Transparent else MiuixTheme.colorScheme.surface
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             BlurredBar(backdrop = backdrop, blurActive = blurActive) {
                 searchStatus.TopAppBarAnim(

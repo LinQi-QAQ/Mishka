@@ -2,6 +2,7 @@ package top.yukonga.mishka
 
 import android.Manifest
 import android.app.ActivityManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -36,6 +37,7 @@ import top.yukonga.mishka.data.repository.SubscriptionProxyResolver
 import top.yukonga.mishka.platform.AndroidWifiPolicy
 import top.yukonga.mishka.platform.BootStartManager
 import top.yukonga.mishka.platform.FilePicker
+import top.yukonga.mishka.platform.LanguageHelper
 import top.yukonga.mishka.platform.PlatformStorage
 import top.yukonga.mishka.platform.ProxyServiceController
 import top.yukonga.mishka.platform.StorageKeys
@@ -60,6 +62,10 @@ import top.yukonga.mishka.viewmodel.SubscriptionViewModel
 private const val STATE_DEEPLINK_NONCE = "deeplink_nonce"
 
 class MainActivity : ComponentActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LanguageHelper.wrapBaseContext(newBase))
+    }
 
     private lateinit var serviceController: ProxyServiceController
     private lateinit var homeViewModel: HomeViewModel
@@ -115,17 +121,12 @@ class MainActivity : ComponentActivity() {
             val url: String? = when (result) {
                 is QRResult.QRSuccess -> {
                     val raw = result.content.rawValue
-                    when {
-                        raw == null -> {
-                            showQrToast(R.string.qr_unsupported)
-                            null
-                        }
-
-                        raw.startsWith("http://") || raw.startsWith("https://") -> raw
-                        else -> {
-                            showQrToast(R.string.qr_invalid_subscription)
-                            null
-                        }
+                    if (raw.isNullOrBlank()) {
+                        showQrToast(R.string.qr_unsupported)
+                        null
+                    } else {
+                        // 内容分类（订阅 URL / 分享链接）交给导入侧判断，这里原样透传
+                        raw
                     }
                 }
 

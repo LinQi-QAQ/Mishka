@@ -14,6 +14,12 @@ data class ThemeConfig(
     val accentColor: ThemeAccentColor = ThemeAccentColor.Default,
     val blurEnabled: Boolean = true,
     val topBarBlurStyle: TopBarBlurStyle = TopBarBlurStyle.Gaussian,
+    val cardLiquidGlass: Boolean = true,
+    val cardGlassBlurRadius: Float = 20f,
+    val cardGlassTintAlpha: Float = 0.5f,
+    val backgroundImagePath: String? = null,
+    // 壁纸上的文字颜色：auto 跟随主题 / dark 深色字（强制浅色界面）/ light 浅色字（强制深色界面）
+    val backgroundTextMode: String = "auto",
     val floatingBottomBar: Boolean = false,
     val floatingBottomBarStyle: FloatingBottomBarStyle = FloatingBottomBarStyle.Miuix,
     val bottomBarMode: BottomBarMode = BottomBarMode.IconAndText,
@@ -107,6 +113,15 @@ fun readThemeConfig(storage: PlatformStorage): ThemeConfig {
             storage.getString(StorageKeys.THEME_ACCENT_COLOR, ThemeAccentColor.Default.storageValue),
         ),
         blurEnabled = storage.getString(StorageKeys.THEME_BLUR, "true") != "false",
+        cardLiquidGlass = storage.getString(StorageKeys.THEME_CARD_LIQUID_GLASS, "true") != "false",
+        cardGlassBlurRadius = storage.getString(StorageKeys.THEME_CARD_GLASS_BLUR, "20")?.toFloatOrNull()
+            ?.coerceIn(5f, 40f) ?: 20f,
+        cardGlassTintAlpha = storage.getString(StorageKeys.THEME_CARD_GLASS_TINT, "0.5")?.toFloatOrNull()
+            ?.coerceIn(0.1f, 0.9f) ?: 0.5f,
+        backgroundImagePath = storage.getString(StorageKeys.THEME_BACKGROUND_IMAGE, "")
+            ?.takeIf { it.isNotEmpty() },
+        backgroundTextMode = storage.getString(StorageKeys.THEME_BACKGROUND_TEXT_MODE, "auto")
+            ?.takeIf { it == "dark" || it == "light" } ?: "auto",
         topBarBlurStyle = TopBarBlurStyle.fromStorage(
             storage.getString(StorageKeys.THEME_BLUR_STYLE, TopBarBlurStyle.Gaussian.storageValue),
         ),
@@ -145,6 +160,11 @@ fun writeThemeConfig(storage: PlatformStorage, config: ThemeConfig) {
     storage.putString(StorageKeys.THEME_ACCENT_COLOR, config.accentColor.storageValue)
     storage.putString(StorageKeys.THEME_BLUR, config.blurEnabled.toString())
     storage.putString(StorageKeys.THEME_BLUR_STYLE, config.topBarBlurStyle.storageValue)
+    storage.putString(StorageKeys.THEME_CARD_LIQUID_GLASS, config.cardLiquidGlass.toString())
+    storage.putString(StorageKeys.THEME_CARD_GLASS_BLUR, config.cardGlassBlurRadius.toString())
+    storage.putString(StorageKeys.THEME_CARD_GLASS_TINT, config.cardGlassTintAlpha.toString())
+    storage.putString(StorageKeys.THEME_BACKGROUND_IMAGE, config.backgroundImagePath ?: "")
+    storage.putString(StorageKeys.THEME_BACKGROUND_TEXT_MODE, config.backgroundTextMode)
     storage.putString(StorageKeys.THEME_FLOATING_BOTTOM_BAR, config.floatingBottomBar.toString())
     storage.putString(StorageKeys.THEME_FLOATING_BOTTOM_BAR_STYLE, config.floatingBottomBarStyle.storageValue)
     storage.putString(StorageKeys.THEME_BOTTOM_BAR_MODE, config.bottomBarMode.storageValue)

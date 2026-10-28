@@ -1,7 +1,7 @@
 <resources>
     <!-- Notification Channels -->
     <string name="channel_vpn_name">VPN 服務狀態</string>
-    <string name="channel_vpn_desc">Mishka 代理服務執行狀態</string>
+    <string name="channel_vpn_desc">Sakura Clash 代理服務執行狀態</string>
     <string name="channel_profile_status_name">設定檔更新進度</string>
     <string name="channel_profile_status_desc">設定檔下載與驗證進度</string>
     <string name="channel_profile_result_name">設定檔更新結果</string>
@@ -13,7 +13,7 @@
 
     <!-- VPN Notifications -->
     <string name="notification_loading">正在啟動…</string>
-    <string name="notification_running_title">Mishka 執行中</string>
+    <string name="notification_running_title">Sakura Clash 執行中</string>
     <string name="notification_running_content">模式: %1$s</string>
     <string name="notification_wifi_policy_title">Wi-Fi 自動切換</string>
     <string name="notification_wifi_policy_service_content">等待 Wi-Fi 變化</string>
@@ -203,6 +203,62 @@
     <string name="subscription_url_summary">從 URL 匯入</string>
     <string name="subscription_qr">QR Code</string>
     <string name="subscription_qr_summary">掃描 QR Code 匯入</string>
+    <string name="subscription_qr_scan">相機掃描</string>
+    <string name="subscription_clipboard">剪貼簿匯入</string>
+    <string name="subscription_clipboard_summary">貼上分享鏈接或訂閱地址</string>
+    <string name="subscription_qr_gallery">從相冊識別</string>
+    <string name="subscription_qr_gallery_summary">選擇圖片，識別其中的 QR Code</string>
+    <string name="subscription_manual">手動設定</string>
+    <string name="subscription_manual_summary">逐項填寫一個節點</string>
+    <string name="subscription_auto_clipboard">自動從剪貼板加入</string>
+    <string name="subscription_auto_clipboard_summary">打開添加頁時，自動匯入剪貼板中的分享鏈接</string>
+    <string name="subscription_chain">鏈式代理</string>
+    <string name="subscription_chain_summary">讓流量按順序經過多個節點</string>
+    <string name="chain_name">鏈名稱</string>
+    <string name="chain_name_placeholder">例如：鏈式代理 1</string>
+    <string name="chain_empty_hint">至少選擇兩個節點</string>
+    <string name="chain_order_hint">鏈路順序：流量先經過排在前面的節點</string>
+    <string name="chain_no_nodes">沒有可用的節點（先匯入帶節點的訂閱）</string>
+    <string name="chain_selected_count">已選 %1$d 個節點</string>
+    <string name="subscription_imported_name">匯入的節點</string>
+    <string name="subscription_import_invalid">無法識別這段內容</string>
+    <string name="qr_gallery_not_found">圖片中未找到 QR Code</string>
+    <string name="manual_name">名稱</string>
+    <string name="manual_server">伺服器</string>
+    <string name="manual_port">連接埠</string>
+    <string name="manual_uuid">UUID</string>
+    <string name="manual_password">密碼</string>
+    <string name="manual_username">用戶名</string>
+    <string name="manual_sni">SNI</string>
+    <string name="manual_transport">傳輸方式</string>
+    <string name="manual_security">安全性</string>
+    <string name="manual_flow">流控</string>
+    <string name="manual_fingerprint">瀏覽器指紋</string>
+    <string name="manual_reality_public_key">Reality 公鑰</string>
+    <string name="manual_reality_short_id">Reality Short ID</string>
+    <string name="manual_host">Host</string>
+    <string name="manual_path">路徑</string>
+    <string name="manual_service_name">服務名</string>
+    <string name="manual_allow_insecure">允許不安全連線</string>
+    <string name="manual_method">加密方式</string>
+    <string name="manual_alter_id">Alter ID</string>
+    <string name="manual_plugin">插件</string>
+    <string name="manual_obfs_mode">混淆模式</string>
+    <string name="manual_obfs_host">混淆主機</string>
+    <string name="manual_obfs_password">混淆密碼</string>
+    <string name="manual_auth">認證字串</string>
+    <string name="manual_congestion">擁塞控制</string>
+    <string name="manual_alpn">ALPN</string>
+    <string name="manual_private_key">私鑰</string>
+    <string name="manual_public_key">對端公鑰</string>
+    <string name="manual_preshared_key">預共享密鑰</string>
+    <string name="manual_address">本地地址</string>
+    <string name="manual_mtu">MTU</string>
+    <string name="manual_protocol">協議</string>
+    <string name="manual_obfs">混淆</string>
+    <string name="manual_protocol_param">協議參數</string>
+    <string name="manual_obfs_param">混淆參數</string>
+    <string name="manual_tls">TLS</string>
     <string name="subscription_url_hint">僅接受 mihomo 設定檔（包含代理／規則）</string>
     <string name="subscription_name">名稱</string>
     <string name="subscription_name_auto_placeholder">留空時自動從訂閱取得</string>
@@ -283,6 +339,9 @@
     <string name="settings_title">設定</string>
     <string name="settings_network">網路</string>
     <string name="settings_general">一般</string>
+    <string name="settings_language_title">語言</string>
+    <string name="settings_language_summary">介面語言，選擇後立即生效</string>
+    <string name="settings_language_follow_system">跟隨系統</string>
     <string name="settings_tun_mode">通道模式</string>
     <string name="settings_tun_vpn_summary">透過 VpnService</string>
     <string name="settings_tun_root_tun_summary">自建 TUN 裝置</string>
@@ -290,6 +349,18 @@
     <string name="settings_tun_mode_vpn">VPN</string>
     <string name="settings_tun_mode_root_tun">ROOT TUN</string>
     <string name="settings_tun_mode_root_tproxy">ROOT TPROXY</string>
+    <string name="settings_tun_mode_note">ROOT TUN：在 Root 權限下自建 TUN 虛擬網卡，在用戶態轉發流量，相容性好、不挑核心，效能略低於 TPROXY。\nROOT TPROXY：核心態透明代理（iptables + fwmark），效能接近直連；需要核心支援 xt_TPROXY / xt_socket 模組，不支援的機型會報錯、無法啟動。</string>
+    <string name="settings_rules_title">規則設定</string>
+    <string name="settings_rules_summary">檢視與編輯分流規則</string>
+    <string name="settings_rules_hint">這裡的規則會整體取代訂閱自帶的規則；修改儲存後需要重新啟動代理才能生效。</string>
+    <string name="settings_rules_empty_subscription">沒有啟用的訂閱，請先匯入並啟用一個訂閱。</string>
+    <string name="settings_rules_list_title">目前規則</string>
+    <string name="settings_rules_add_title">新增規則</string>
+    <string name="settings_rules_add_placeholder">輸入規則，例如 GEOIP,CN,DIRECT</string>
+    <string name="settings_rules_add">新增</string>
+    <string name="settings_rules_clear">清除</string>
+    <string name="settings_rules_empty">暫無規則，所有流量將走訂閱預設行為。</string>
+    <string name="settings_rules_override_name">規則設定</string>
     <string name="settings_vpn_settings">VPN 設定</string>
     <string name="settings_vpn_summary">繞過私人網路、DNS 攔截、IPv6</string>
     <string name="settings_tun_device">TUN 裝置名稱</string>
@@ -325,6 +396,20 @@
     <string name="settings_theme_monet_summary">可用時使用系統動態取色</string>
     <string name="settings_theme_blur">模糊效果</string>
     <string name="settings_theme_blur_summary">啟用頂部列、底部列等表面的模糊效果</string>
+    <string name="settings_theme_card_glass">液態玻璃卡片</string>
+    <string name="settings_theme_background">背景圖</string>
+    <string name="settings_theme_background_none">未設置（漸變）</string>
+    <string name="settings_theme_background_custom">自定義圖片</string>
+    <string name="settings_theme_background_clear">清除背景圖</string>
+    <string name="settings_theme_background_text">壁紙文字顏色</string>
+    <string name="settings_theme_background_text_auto">跟隨主題</string>
+    <string name="settings_theme_background_text_dark">深色字</string>
+    <string name="settings_theme_background_text_light">淺色字</string>
+    <string name="settings_theme_card_glass_summary">為卡片套用液態玻璃效果，與導航欄同款</string>
+    <string name="settings_theme_card_glass_blur">玻璃模糊半徑</string>
+    <string name="settings_theme_card_glass_blur_summary">卡片對身後內容的模糊強度</string>
+    <string name="settings_theme_card_glass_tint">玻璃著色濃度</string>
+    <string name="settings_theme_card_glass_tint_summary">卡片著色的不透明程度</string>
     <string name="settings_theme_blur_style">頂欄模糊樣式</string>
     <string name="settings_theme_blur_style_gaussian">高斯</string>
     <string name="settings_theme_blur_style_progressive">漸進</string>
@@ -471,6 +556,12 @@
     <string name="meta_unified_delay">統一延遲</string>
     <string name="meta_geodata_mode">Geodata 模式</string>
     <string name="meta_tcp_concurrent">TCP 並行</string>
+    <string name="meta_tls_fragment">TLS 分片</string>
+    <string name="meta_tls_fragment_enable">啟用 TLS 分片</string>
+    <string name="meta_tls_fragment_enable_summary">把 TLS 握手拆成小段發送，繞過基於 SNI 的阻斷</string>
+    <string name="meta_tls_fragment_size">分片大小（字節）</string>
+    <string name="meta_tls_fragment_interval">分片間隔（毫秒）</string>
+    <string name="meta_tls_fragment_range_hint">區間寫法如 10-20，默認 10-20</string>
     <string name="meta_find_process_mode">處理程序比對模式</string>
     <string name="meta_sniffer">嗅探器</string>
     <string name="meta_sniffer_enable">啟用嗅探器</string>
@@ -551,7 +642,7 @@
 
     <!-- About -->
     <string name="about_title">關於</string>
-    <string name="about_open_source">開放原始碼授權</string>
+    <string name="about_description">基於 Mishka 開發的 Clash 代理客戶端</string>
 
     <!-- FormatUtils -->
 
@@ -570,6 +661,13 @@
     <string name="meta_age_generate_hybrid">產生後量子金鑰組</string>
     <string name="meta_age_generate_hybrid_summary">mlkem768-x25519 後量子金鑰組</string>
     <string name="meta_age_keypair_title">Age 金鑰組</string>
+    <string name="meta_geo_title">Geo 資料</string>
+    <string name="meta_geo_update">更新 Geo 資料</string>
+    <string name="meta_geo_summary">上次更新：%1$s</string>
+    <string name="meta_geo_summary_missing">資料檔案缺失</string>
+    <string name="meta_geo_updating">下載中…</string>
+    <string name="meta_geo_update_done">Geo 資料已更新，重新啟動代理後生效</string>
+    <string name="meta_geo_update_failed">Geo 資料更新失敗：%1$s</string>
     <string name="meta_age_secret_key">私鑰</string>
     <string name="meta_age_public_key">公鑰</string>
     <string name="meta_age_copy_secret">複製私鑰</string>

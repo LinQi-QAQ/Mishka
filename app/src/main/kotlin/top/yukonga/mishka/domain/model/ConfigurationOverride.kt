@@ -32,10 +32,23 @@ data class ConfigurationOverride(
     @SerialName("geodata-mode") val geodataMode: Boolean? = null,
     @SerialName("tcp-concurrent") val tcpConcurrent: Boolean? = null,
     @SerialName("find-process-mode") val findProcessMode: String? = null,
+    @SerialName("tls-fragment") val tlsFragment: TlsFragmentOverride? = null,
     @SerialName("dns") val dns: DnsOverride? = null,
     @SerialName("sniffer") val sniffer: SnifferOverride? = null,
     @SerialName("tun") val tun: TunOverride? = null,
     @SerialName("profile") val profile: ProfileOverride? = null,
+)
+
+/**
+ * TLS 分片覆写（Sakura Clash 扩展，非 mihomo 上游字段）：把出站 TLS 的
+ * ClientHello 拆成小段发送绕过 SNI 阻断。size / interval 为 "min-max"
+ * 区间字符串（interval 单位毫秒），内核侧解析、非法回退 10-20。
+ */
+@Serializable
+data class TlsFragmentOverride(
+    @SerialName("enable") val enable: Boolean? = null,
+    @SerialName("size") val size: String? = null,
+    @SerialName("interval") val interval: String? = null,
 )
 
 @Serializable

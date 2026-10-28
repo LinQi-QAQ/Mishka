@@ -1,6 +1,7 @@
 package top.yukonga.mishka.ui.screen.subscription
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -13,15 +14,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -33,6 +39,11 @@ import top.yukonga.mishka.R
 import top.yukonga.mishka.domain.model.Subscription
 import top.yukonga.mishka.ui.component.AdaptiveTopAppBar
 import top.yukonga.mishka.ui.component.blur.BlurredBar
+import top.yukonga.mishka.ui.component.blur.CardGlassBackground
+import top.yukonga.mishka.ui.component.blur.LocalCardBackdrop
+import top.yukonga.mishka.ui.component.blur.LocalCardBackgroundImage
+import top.yukonga.mishka.ui.component.blur.cardGlassBackdrop
+import top.yukonga.mishka.ui.component.blur.cardGlassSurface
 import top.yukonga.mishka.ui.component.blur.rememberBlurBackdrop
 import top.yukonga.mishka.ui.theme.StatusColors
 import top.yukonga.mishka.ui.util.WideContentBox
@@ -42,6 +53,7 @@ import top.yukonga.mishka.viewmodel.ProfileOperation
 import top.yukonga.mishka.viewmodel.SubscriptionViewModel
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -77,116 +89,148 @@ fun SubscriptionScreen(
     val scrollBehavior = MiuixScrollBehavior()
 
     val backdrop = rememberBlurBackdrop()
+    val cardBackdrop = rememberBlurBackdrop()
+    // 设了壁纸时主页壁纸由 MainPage 的静态层统一绘制并记录，卡片改采样上层传入的 backdrop
+    val hasWallpaper = LocalCardBackgroundImage.current != null
+    val inheritedCardBackdrop = LocalCardBackdrop.current
+    val effectiveCardBackdrop = if (hasWallpaper) inheritedCardBackdrop else cardBackdrop
     val blurActive = backdrop != null
     val barColor = if (blurActive) Color.Transparent else MiuixTheme.colorScheme.surface
 
-    Scaffold(
-        topBar = {
-            BlurredBar(backdrop = backdrop, blurActive = blurActive) {
-                AdaptiveTopAppBar(
-                    title = stringResource(R.string.subscription_title),
-                    color = barColor,
-                    scrollBehavior = scrollBehavior,
-                    navigationIcon = {},
-                    actions = {
-                        if (uiState.subscriptions.any { it.url.isNotBlank() }) {
-                            IconButton(
-                                onClick = { viewModel.updateAllSubscriptions() },
-                                enabled = !uiState.isLoading,
-                            ) {
+    CompositionLocalProvider(LocalCardBackdrop provides effectiveCardBackdrop) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                BlurredBar(backdrop = backdrop, blurActive = blurActive) {
+                    AdaptiveTopAppBar(
+                        title = stringResource(R.string.subscription_title),
+                        color = barColor,
+                        scrollBehavior = scrollBehavior,
+                        navigationIcon = {},
+                        actions = {
+                            if (uiState.subscriptions.any { it.url.isNotBlank() }) {
+                                IconButton(
+                                    onClick = { viewModel.updateAllSubscriptions() },
+                                    enabled = !uiState.isLoading,
+                                ) {
+                                    Icon(
+                                        imageVector = MiuixIcons.Refresh,
+                                        contentDescription = stringResource(R.string.subscription_update_all),
+                                        tint = MiuixTheme.colorScheme.onSurface,
+                                    )
+                                }
+                            }
+                            IconButton(onClick = { viewModel.clearError(); onNavigateAdd() }) {
                                 Icon(
-                                    imageVector = MiuixIcons.Refresh,
-                                    contentDescription = stringResource(R.string.subscription_update_all),
+                                    imageVector = MiuixIcons.Add,
+                                    contentDescription = stringResource(R.string.subscription_add),
                                     tint = MiuixTheme.colorScheme.onSurface,
                                 )
                             }
-                        }
-                        IconButton(onClick = { viewModel.clearError(); onNavigateAdd() }) {
-                            Icon(
-                                imageVector = MiuixIcons.Add,
-                                contentDescription = stringResource(R.string.subscription_add),
-                                tint = MiuixTheme.colorScheme.onSurface,
-                            )
-                        }
-                    },
-                )
-            }
-        },
-    ) { innerPadding ->
-        WideContentBox { sidePadding ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
-                    .scrollEndHaptic()
-                    .overScrollVertical()
-                    .nestedScroll(scrollBehavior.nestedScrollConnection),
-                contentPadding = PaddingValues(
-                    top = innerPadding.calculateTopPadding(),
-                    bottom = bottomPadding,
-                    start = sidePadding,
-                    end = sidePadding,
-                ),
-            ) {
-                if (uiState.subscriptions.isNotEmpty()) {
-                    item(key = "top_padding") {
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-                }
-
-                if (uiState.error.isNotEmpty()) {
-                    item(key = "error") {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp)
-                                .padding(bottom = 12.dp),
-                            insideMargin = PaddingValues(16.dp),
-                        ) {
-                            Text(
-                                text = uiState.error,
-                                color = StatusColors.danger,
-                            )
-                        }
-                    }
-                }
-
-                if (uiState.subscriptions.isEmpty()) {
-                    item(key = "empty") {
-                        Column(
-                            modifier = Modifier.fillParentMaxSize(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                        ) {
-                            Text(
-                                text = stringResource(R.string.subscription_no_config),
-                                fontSize = 16.sp,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            )
-                            Text(
-                                text = stringResource(R.string.subscription_tap_add),
-                                modifier = Modifier.padding(top = 6.dp),
-                                fontSize = 14.sp,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            )
-                        }
-                    }
-                }
-
-                items(uiState.subscriptions, key = { it.id }) { sub ->
-                    SubscriptionItem(
-                        subscription = sub,
-                        isLoading = uiState.isLoading,
-                        onSelect = {
-                            viewModel.setActive(sub.id)
-                            onActiveChanged?.invoke()
                         },
-                        onRefresh = { viewModel.fetchSubscription(sub.id) },
-                        onDelete = {
-                            viewModel.removeSubscription(sub.id) { onActiveChanged?.invoke() }
-                        },
-                        onEdit = { onNavigateEdit(sub.id) },
                     )
+                }
+            },
+        ) { innerPadding ->
+            Box(
+                Modifier
+                    .fillMaxSize()
+                                ) {
+                if (!hasWallpaper) CardGlassBackground(cardBackdrop)
+                WideContentBox { sidePadding ->
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
+                            .scrollEndHaptic()
+                            .overScrollVertical()
+                            .nestedScroll(scrollBehavior.nestedScrollConnection),
+                        contentPadding = PaddingValues(
+                            top = innerPadding.calculateTopPadding(),
+                            bottom = bottomPadding,
+                            start = sidePadding,
+                            end = sidePadding,
+                        ),
+                    ) {
+                        if (uiState.subscriptions.isNotEmpty()) {
+                            item(key = "top_padding") {
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
+                        }
+
+                        if (uiState.error.isNotEmpty()) {
+                            item(key = "error") {
+                                val glassBackdrop = cardGlassBackdrop()
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp)
+                                        .padding(bottom = 12.dp)
+                                        .then(
+                                            if (glassBackdrop != null) {
+                                                Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp)
+                                            } else {
+                                                Modifier
+                                            }
+                                        ),
+                                    colors = if (glassBackdrop != null) {
+                                        CardDefaults.defaultColors(color = Color.Transparent)
+                                    } else {
+                                        CardDefaults.defaultColors()
+                                    },
+                                    insideMargin = PaddingValues(16.dp),
+                                ) {
+                                    Text(
+                                        text = uiState.error,
+                                        color = StatusColors.danger,
+                                    )
+                                }
+                            }
+                        }
+
+                        if (uiState.subscriptions.isEmpty()) {
+                            item(key = "empty") {
+                                Column(
+                                    modifier = Modifier.fillParentMaxSize(),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.subscription_no_config),
+                                        fontSize = 16.sp,
+                                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.subscription_tap_add),
+                                        modifier = Modifier.padding(top = 6.dp),
+                                        fontSize = 14.sp,
+                                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                    )
+                                }
+                            }
+                        }
+
+                        itemsIndexed(uiState.subscriptions, key = { _, sub -> sub.id }) { index, sub ->
+                            SubscriptionItem(
+                                subscription = sub,
+                                isLoading = uiState.isLoading,
+                                canMoveUp = index > 0,
+                                canMoveDown = index < uiState.subscriptions.lastIndex,
+                                onMoveUp = { viewModel.moveSubscription(sub.id, up = true) },
+                                onMoveDown = { viewModel.moveSubscription(sub.id, up = false) },
+                                modifier = Modifier.animateItem(),
+                                onSelect = {
+                                    viewModel.setActive(sub.id)
+                                    onActiveChanged?.invoke()
+                                },
+                                onRefresh = { viewModel.fetchSubscription(sub.id) },
+                                onDelete = {
+                                    viewModel.removeSubscription(sub.id) { onActiveChanged?.invoke() }
+                                },
+                                onEdit = { onNavigateEdit(sub.id) },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -227,6 +271,11 @@ fun SubscriptionScreen(
 private fun SubscriptionItem(
     subscription: Subscription,
     isLoading: Boolean,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    modifier: Modifier = Modifier,
     onSelect: () -> Unit,
     onRefresh: () -> Unit,
     onDelete: () -> Unit,
@@ -234,12 +283,25 @@ private fun SubscriptionItem(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     val displayName = subscription.name.ifBlank { stringResource(R.string.subscription_config) }
+    val glassBackdrop = cardGlassBackdrop()
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp)
-            .padding(bottom = 12.dp),
+            .padding(bottom = 12.dp)
+            .then(
+                if (glassBackdrop != null) {
+                    Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp)
+                } else {
+                    Modifier
+                }
+            ),
+        colors = if (glassBackdrop != null) {
+            CardDefaults.defaultColors(color = Color.Transparent)
+        } else {
+            CardDefaults.defaultColors()
+        },
         insideMargin = PaddingValues(16.dp),
         onClick = onSelect,
         pressFeedbackType = PressFeedbackType.Sink,
@@ -311,6 +373,20 @@ private fun SubscriptionItem(
 
             Spacer(Modifier.weight(1f))
 
+            MoveButton(
+                icon = Icons.Rounded.KeyboardArrowUp,
+                contentDescription = stringResource(R.string.override_move_up),
+                enabled = canMoveUp,
+                onClick = onMoveUp,
+            )
+            Spacer(Modifier.width(8.dp))
+            MoveButton(
+                icon = Icons.Rounded.KeyboardArrowDown,
+                contentDescription = stringResource(R.string.override_move_down),
+                enabled = canMoveDown,
+                onClick = onMoveDown,
+            )
+            Spacer(Modifier.width(8.dp))
             IconButton(
                 onClick = onEdit,
                 minHeight = 35.dp,
@@ -381,5 +457,30 @@ private fun SubscriptionItem(
                 },
             )
         }
+    }
+}
+
+/** 与覆写选择页同款的上移/下移按钮（35dp、次容器底色） */
+@Composable
+private fun MoveButton(
+    icon: ImageVector,
+    contentDescription: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        minHeight = 35.dp,
+        minWidth = 35.dp,
+        backgroundColor = MiuixTheme.colorScheme.secondaryContainer,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(20.dp),
+            tint = if (enabled) MiuixTheme.colorScheme.onSurfaceVariantSummary
+            else MiuixTheme.colorScheme.disabledOnSecondaryVariant,
+        )
     }
 }

@@ -34,7 +34,7 @@ val viewModelModule = module {
         )
     }
     single { SubscriptionViewModel(get(), get(), get(), get(), androidContext()) }
-    single { OverrideProfileViewModel(get(), get(), get(), androidContext()) }
+    single { OverrideProfileViewModel(get(), get(), get(), get(), androidContext()) }
     single {
         ProxyViewModel(
             selectionDao = get(),
@@ -44,7 +44,7 @@ val viewModelModule = module {
     }
     single { AppProxyViewModel(get(), get(), get()) }
     single { NetworkSettingsViewModel(get()) }
-    single { MetaSettingsViewModel(get()) }
+    single { MetaSettingsViewModel(get(), get(), androidContext()) }
     single { ExternalControlViewModel(get()) }
     single { LogViewModel() }
     single { ProviderViewModel() }

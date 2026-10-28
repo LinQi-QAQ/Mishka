@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -56,12 +57,15 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTitle
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.preference.ArrowPreference
+import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
@@ -74,6 +78,7 @@ fun MetaSettingsScreen(
     onBack: () -> Unit = {},
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
+    val geoState by viewModel.geoState.collectAsStateWithLifecycle()
     val scrollBehavior = MiuixScrollBehavior()
     val resetDoneMsg = stringResource(R.string.dialog_reset_done)
 
@@ -99,6 +104,18 @@ fun MetaSettingsScreen(
         showListDialog = true
     }
 
+    var showStringDialog by remember { mutableStateOf(false) }
+    var editingStringTitle by remember { mutableStateOf("") }
+    var editingStringSetter by remember { mutableStateOf<(String?) -> Unit>({}) }
+    val stringTextState = rememberTextFieldState()
+
+    fun openStringDialog(title: String, value: String?, setter: (String?) -> Unit) {
+        editingStringTitle = title
+        editingStringSetter = setter
+        stringTextState.edit { replace(0, length, value ?: "") }
+        showStringDialog = true
+    }
+
     val sniffer = uiState.sniffer
 
     val failedMsg = stringResource(R.string.meta_age_keygen_failed)
@@ -117,6 +134,7 @@ fun MetaSettingsScreen(
     val barColor = if (blurActive) Color.Transparent else MiuixTheme.colorScheme.surface
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             BlurredBar(backdrop = backdrop, blurActive = blurActive) {
                 AdaptiveTopAppBar(
@@ -183,6 +201,49 @@ fun MetaSettingsScreen(
                         FindProcessModePreference(
                             value = uiState.findProcessMode,
                             onValueChange = { v -> updateTop { it.copy(findProcessMode = v) } },
+                        )
+                    },
+                ),
+            )
+
+            item { SmallTitle(text = stringResource(R.string.meta_tls_fragment)) }
+            groupedCardItems(
+                keyPrefix = "meta_fragment",
+                items = listOf(
+                    CardItem("fragmentEnable") {
+                        SwitchPreference(
+                            title = stringResource(R.string.meta_tls_fragment_enable),
+                            summary = stringResource(R.string.meta_tls_fragment_enable_summary),
+                            checked = uiState.tlsFragment?.enable == true,
+                            onCheckedChange = { v ->
+                                viewModel.updateTlsFragment { it.copy(enable = v) }
+                            },
+                        )
+                    },
+                    CardItem("fragmentSize") {
+                        val sizeTitle = stringResource(R.string.meta_tls_fragment_size)
+                        ArrowPreference(
+                            title = sizeTitle,
+                            summary = uiState.tlsFragment?.size
+                                ?: stringResource(R.string.meta_tls_fragment_range_hint),
+                            onClick = {
+                                openStringDialog(sizeTitle, uiState.tlsFragment?.size) { v ->
+                                    viewModel.updateTlsFragment { it.copy(size = v) }
+                                }
+                            },
+                        )
+                    },
+                    CardItem("fragmentInterval") {
+                        val intervalTitle = stringResource(R.string.meta_tls_fragment_interval)
+                        ArrowPreference(
+                            title = intervalTitle,
+                            summary = uiState.tlsFragment?.interval
+                                ?: stringResource(R.string.meta_tls_fragment_range_hint),
+                            onClick = {
+                                openStringDialog(intervalTitle, uiState.tlsFragment?.interval) { v ->
+                                    viewModel.updateTlsFragment { it.copy(interval = v) }
+                                }
+                            },
                         )
                     },
                 ),
@@ -270,6 +331,24 @@ fun MetaSettingsScreen(
                 ),
             )
 
+            item { SmallTitle(text = stringResource(R.string.meta_geo_title)) }
+            groupedCardItems(
+                keyPrefix = "meta_geo",
+                items = listOf(
+                    CardItem("update") {
+                        ArrowPreference(
+                            title = stringResource(R.string.meta_geo_update),
+                            summary = if (geoState.isUpdating) {
+                                stringResource(R.string.meta_geo_updating)
+                            } else {
+                                geoState.summary
+                            },
+                            onClick = { viewModel.updateGeoData() },
+                        )
+                    },
+                ),
+            )
+
             item {
                 Spacer(
                     Modifier
@@ -288,6 +367,18 @@ fun MetaSettingsScreen(
         onConfirm = { list -> editingListSetter(list) },
         onReset = {
             editingListSetter(null)
+            showToast(resetDoneMsg)
+        },
+    )
+
+    FragmentStringEditDialog(
+        show = showStringDialog,
+        title = editingStringTitle,
+        textState = stringTextState,
+        onDismiss = { showStringDialog = false },
+        onConfirm = { value -> editingStringSetter(value) },
+        onReset = {
+            editingStringSetter(null)
             showToast(resetDoneMsg)
         },
     )
@@ -395,4 +486,55 @@ private fun listSummary(list: List<String>?): String {
     if (list == null) return stringResource(R.string.common_not_modified)
     if (list.isEmpty()) return stringResource(R.string.common_cleared)
     return pluralStringResource(R.plurals.common_items_count, list.size, list.size)
+}
+
+@Composable
+private fun FragmentStringEditDialog(
+    show: Boolean,
+    title: String,
+    textState: TextFieldState,
+    onDismiss: () -> Unit,
+    onConfirm: (String?) -> Unit,
+    onReset: () -> Unit,
+) {
+    WindowDialog(
+        show = show,
+        title = title,
+        onDismissRequest = onDismiss,
+    ) {
+        TextField(
+            state = textState,
+            modifier = Modifier.fillMaxWidth(),
+            label = stringResource(R.string.meta_tls_fragment_range_hint),
+        )
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            TextButton(
+                text = stringResource(R.string.common_not_modified),
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    onReset()
+                    onDismiss()
+                },
+            )
+            TextButton(
+                text = stringResource(R.string.common_cancel),
+                modifier = Modifier.weight(1f),
+                onClick = onDismiss,
+            )
+            TextButton(
+                text = stringResource(R.string.common_confirm),
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.textButtonColorsPrimary(),
+                onClick = {
+                    val value = textState.text.toString().trim()
+                    onConfirm(value.ifEmpty { null })
+                    onDismiss()
+                },
+            )
+        }
+    }
 }

@@ -1,9 +1,9 @@
 <resources>
-    <string name="app_name" translatable="false">Mishka</string>
+    <string name="app_name" translatable="false">Sakura Clash</string>
 
     <!-- Notification Channels -->
     <string name="channel_vpn_name">VPN Service Status</string>
-    <string name="channel_vpn_desc">Mishka proxy service status</string>
+    <string name="channel_vpn_desc">Sakura Clash proxy service status</string>
     <string name="channel_profile_status_name">Config Update Progress</string>
     <string name="channel_profile_status_desc">Config download and validation progress</string>
     <string name="channel_profile_result_name">Config Update Result</string>
@@ -15,7 +15,7 @@
 
     <!-- VPN Notifications -->
     <string name="notification_loading">Starting…</string>
-    <string name="notification_running_title">Mishka Running</string>
+    <string name="notification_running_title">Sakura Clash Running</string>
     <string name="notification_running_content">Mode: %1$s</string>
     <string name="notification_wifi_policy_title">Wi-Fi Auto Switch</string>
     <string name="notification_wifi_policy_service_content">Waiting for Wi-Fi changes</string>
@@ -205,6 +205,62 @@
     <string name="subscription_url_summary">Import from URL</string>
     <string name="subscription_qr">QR Code</string>
     <string name="subscription_qr_summary">Scan QR code to import</string>
+    <string name="subscription_qr_scan">Scan with Camera</string>
+    <string name="subscription_clipboard">Clipboard</string>
+    <string name="subscription_clipboard_summary">Paste share links or a subscription URL</string>
+    <string name="subscription_qr_gallery">Scan from Gallery</string>
+    <string name="subscription_qr_gallery_summary">Pick an image and decode its QR code</string>
+    <string name="subscription_manual">Manual Setup</string>
+    <string name="subscription_manual_summary">Fill in a single node field by field</string>
+    <string name="subscription_auto_clipboard">Auto Import from Clipboard</string>
+    <string name="subscription_auto_clipboard_summary">Import share links from the clipboard when opening the add page</string>
+    <string name="subscription_chain">Proxy Chain</string>
+    <string name="subscription_chain_summary">Route traffic through several nodes in order</string>
+    <string name="chain_name">Chain Name</string>
+    <string name="chain_name_placeholder">e.g. Chain 1</string>
+    <string name="chain_empty_hint">Select at least two nodes</string>
+    <string name="chain_order_hint">Order: traffic passes through earlier nodes first</string>
+    <string name="chain_no_nodes">No nodes available (import a subscription with nodes first)</string>
+    <string name="chain_selected_count">%1$d nodes selected</string>
+    <string name="subscription_imported_name">Imported nodes</string>
+    <string name="subscription_import_invalid">This content can’t be recognized</string>
+    <string name="qr_gallery_not_found">No QR code found in the image</string>
+    <string name="manual_name">Name</string>
+    <string name="manual_server">Server</string>
+    <string name="manual_port">Port</string>
+    <string name="manual_uuid">UUID</string>
+    <string name="manual_password">Password</string>
+    <string name="manual_username">Username</string>
+    <string name="manual_sni">SNI</string>
+    <string name="manual_transport">Transport</string>
+    <string name="manual_security">Security</string>
+    <string name="manual_flow">Flow</string>
+    <string name="manual_fingerprint">Fingerprint</string>
+    <string name="manual_reality_public_key">Reality Public Key</string>
+    <string name="manual_reality_short_id">Reality Short ID</string>
+    <string name="manual_host">Host</string>
+    <string name="manual_path">Path</string>
+    <string name="manual_service_name">Service Name</string>
+    <string name="manual_allow_insecure">Allow Insecure</string>
+    <string name="manual_method">Encryption</string>
+    <string name="manual_alter_id">Alter ID</string>
+    <string name="manual_plugin">Plugin</string>
+    <string name="manual_obfs_mode">Obfs Mode</string>
+    <string name="manual_obfs_host">Obfs Host</string>
+    <string name="manual_obfs_password">Obfs Password</string>
+    <string name="manual_auth">Auth</string>
+    <string name="manual_congestion">Congestion Control</string>
+    <string name="manual_alpn">ALPN</string>
+    <string name="manual_private_key">Private Key</string>
+    <string name="manual_public_key">Peer Public Key</string>
+    <string name="manual_preshared_key">Preshared Key</string>
+    <string name="manual_address">Local Address</string>
+    <string name="manual_mtu">MTU</string>
+    <string name="manual_protocol">Protocol</string>
+    <string name="manual_obfs">Obfs</string>
+    <string name="manual_protocol_param">Protocol Param</string>
+    <string name="manual_obfs_param">Obfs Param</string>
+    <string name="manual_tls">TLS</string>
     <string name="subscription_url_hint">Only accepts mihomo config files (with proxies/rules)</string>
     <string name="subscription_name">Name</string>
     <string name="subscription_name_auto_placeholder">Leave blank to auto-name from subscription</string>
@@ -285,6 +341,9 @@
     <string name="settings_title">Settings</string>
     <string name="settings_network">Network</string>
     <string name="settings_general">General</string>
+    <string name="settings_language_title">Language</string>
+    <string name="settings_language_summary">App interface language, applies immediately</string>
+    <string name="settings_language_follow_system">Follow system</string>
     <string name="settings_tun_mode">Tunnel Mode</string>
     <string name="settings_tun_vpn_summary">via VpnService</string>
     <string name="settings_tun_root_tun_summary">owns TUN device</string>
@@ -292,6 +351,18 @@
     <string name="settings_tun_mode_vpn">VPN</string>
     <string name="settings_tun_mode_root_tun">ROOT TUN</string>
     <string name="settings_tun_mode_root_tproxy">ROOT TPROXY</string>
+    <string name="settings_tun_mode_note">ROOT TUN: creates a TUN virtual NIC with root privileges and forwards traffic in user space. Best compatibility and not picky about kernels, but slightly slower than TPROXY.\nROOT TPROXY: kernel-space transparent proxy (iptables + fwmark) with near-direct performance; requires kernel xt_TPROXY / xt_socket modules. Devices without them will fail to start with an error.</string>
+    <string name="settings_rules_title">Rules Settings</string>
+    <string name="settings_rules_summary">View and edit routing rules</string>
+    <string name="settings_rules_hint">Rules here completely replace the subscription\'s built-in rules; restart the proxy after saving for changes to take effect.</string>
+    <string name="settings_rules_empty_subscription">No active subscription. Import and activate one first.</string>
+    <string name="settings_rules_list_title">Current rules</string>
+    <string name="settings_rules_add_title">Add rule</string>
+    <string name="settings_rules_add_placeholder">Enter a rule, e.g. GEOIP,CN,DIRECT</string>
+    <string name="settings_rules_add">Add</string>
+    <string name="settings_rules_clear">Clear</string>
+    <string name="settings_rules_empty">No rules yet; traffic follows the subscription default.</string>
+    <string name="settings_rules_override_name">Rules Settings</string>
     <string name="settings_vpn_settings">VPN Settings</string>
     <string name="settings_vpn_summary">Bypass private network, DNS hijacking, IPv6</string>
     <string name="settings_tun_device">TUN Device Name</string>
@@ -327,6 +398,20 @@
     <string name="settings_theme_monet_summary">Use the system dynamic color palette when available</string>
     <string name="settings_theme_blur">Blur Effects</string>
     <string name="settings_theme_blur_summary">Enable blur effects for bars and layered surfaces</string>
+    <string name="settings_theme_card_glass">Liquid Glass Cards</string>
+    <string name="settings_theme_background">Background Image</string>
+    <string name="settings_theme_background_none">Not set (gradient)</string>
+    <string name="settings_theme_background_custom">Custom image</string>
+    <string name="settings_theme_background_clear">Clear background image</string>
+    <string name="settings_theme_background_text">Text color on wallpaper</string>
+    <string name="settings_theme_background_text_auto">Follow theme</string>
+    <string name="settings_theme_background_text_dark">Dark text</string>
+    <string name="settings_theme_background_text_light">Light text</string>
+    <string name="settings_theme_card_glass_summary">Apply a liquid glass effect to cards, like the navigation bar</string>
+    <string name="settings_theme_card_glass_blur">Glass blur radius</string>
+    <string name="settings_theme_card_glass_blur_summary">How strongly cards blur what is behind them</string>
+    <string name="settings_theme_card_glass_tint">Glass tint strength</string>
+    <string name="settings_theme_card_glass_tint_summary">How opaque the card tint is</string>
     <string name="settings_theme_blur_style">Top bar blur style</string>
     <string name="settings_theme_blur_style_gaussian">Gaussian</string>
     <string name="settings_theme_blur_style_progressive">Progressive</string>
@@ -473,6 +558,12 @@
     <string name="meta_unified_delay">Unified Delay</string>
     <string name="meta_geodata_mode">Geodata Mode</string>
     <string name="meta_tcp_concurrent">TCP Concurrent</string>
+    <string name="meta_tls_fragment">TLS Fragment</string>
+    <string name="meta_tls_fragment_enable">Enable TLS fragmentation</string>
+    <string name="meta_tls_fragment_enable_summary">Split the TLS ClientHello into small chunks to bypass SNI-based blocking</string>
+    <string name="meta_tls_fragment_size">Fragment size (bytes)</string>
+    <string name="meta_tls_fragment_interval">Fragment interval (ms)</string>
+    <string name="meta_tls_fragment_range_hint">Range like 10-20, default 10-20</string>
     <string name="meta_find_process_mode">Process Match Mode</string>
     <string name="meta_sniffer">Sniffer</string>
     <string name="meta_sniffer_enable">Enable Sniffer</string>
@@ -553,7 +644,8 @@
 
     <!-- About -->
     <string name="about_title">About</string>
-    <string name="about_open_source">Open Source Licenses</string>
+    <string name="about_edition_label" translatable="false">For LinQi</string>
+    <string name="about_description">A Clash proxy client based on Mishka</string>
 
     <!-- FormatUtils -->
 
@@ -572,6 +664,13 @@
     <string name="meta_age_generate_hybrid">Generate Hybrid Key Pair</string>
     <string name="meta_age_generate_hybrid_summary">Post-quantum mlkem768-x25519 key pair</string>
     <string name="meta_age_keypair_title">Age Key Pair</string>
+    <string name="meta_geo_title">Geo Data</string>
+    <string name="meta_geo_update">Update Geo Data</string>
+    <string name="meta_geo_summary">Last updated: %1$s</string>
+    <string name="meta_geo_summary_missing">Data files missing</string>
+    <string name="meta_geo_updating">Downloading…</string>
+    <string name="meta_geo_update_done">Geo data updated. Restart the proxy to apply.</string>
+    <string name="meta_geo_update_failed">Geo data update failed: %1$s</string>
     <string name="meta_age_secret_key">Secret Key</string>
     <string name="meta_age_public_key">Public Key</string>
     <string name="meta_age_copy_secret">Copy Secret Key</string>

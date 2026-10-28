@@ -32,6 +32,13 @@ object StorageKeys {
     // 更新 active 订阅后自动重启代理，默认开；理由见 ProxyServiceController.restartAfterProfileUpdate
     const val RESTART_AFTER_PROFILE_UPDATE = "restart_after_profile_update"
 
+    // 规则设置页专用覆写的 id 锚点：覆写名是随界面语言变的本地化字符串，
+    // 按名匹配在切换语言后失效，故持久化 id 按 id 锚定（见 OverrideProfileViewModel.resolveRulesOverride）
+    const val RULES_OVERRIDE_ID = "rules_override_id"
+    const val SUBSCRIPTION_ORDER = "subscription_order"
+    const val AUTO_CLIPBOARD_IMPORT = "auto_clipboard_import"
+    const val AUTO_CLIPBOARD_LAST_HASH = "auto_clipboard_last_hash"
+
     // Wi-Fi 自动切换
     const val WIFI_POLICY_ENABLED = "wifi_policy_enabled"
     const val WIFI_POLICY_SSIDS = "wifi_policy_ssids"
@@ -96,6 +103,11 @@ object StorageKeys {
     const val THEME_ACCENT_COLOR = "theme_accent_color"
     const val THEME_BLUR = "theme_blur"
     const val THEME_BLUR_STYLE = "theme_blur_style"
+    const val THEME_CARD_LIQUID_GLASS = "theme_card_liquid_glass"
+    const val THEME_CARD_GLASS_BLUR = "theme_card_glass_blur"
+    const val THEME_CARD_GLASS_TINT = "theme_card_glass_tint"
+    const val THEME_BACKGROUND_IMAGE = "theme_background_image"
+    const val THEME_BACKGROUND_TEXT_MODE = "theme_background_text_mode"
     const val THEME_FLOATING_BOTTOM_BAR = "theme_floating_bottom_bar"
     const val THEME_FLOATING_BOTTOM_BAR_STYLE = "theme_floating_bottom_bar_style"
     const val THEME_BOTTOM_BAR_MODE = "theme_bottom_bar_mode"
@@ -107,6 +119,9 @@ object StorageKeys {
     // 横移返回手势，默认启用；由 AppNavigation 持有状态实时生效，这里只作持久化
     const val SWIPE_DISMISS = "swipe_dismiss"
     const val HIDE_TASK_CARD = "hide_task_card"
+
+    // 应用内语言：空 = 跟随系统；否则为 BCP 47 语言标签，如 zh-CN / zh-TW / en / ru
+    const val APP_LANGUAGE = "app_language"
 
     // 一次性迁移标记
     const val MIGRATION_ROOT_RECLAIM_DONE = "migration_root_reclaim_done"

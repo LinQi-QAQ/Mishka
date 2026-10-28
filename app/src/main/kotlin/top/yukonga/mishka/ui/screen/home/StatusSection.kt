@@ -1,5 +1,8 @@
 package top.yukonga.mishka.ui.screen.home
 
+import top.yukonga.mishka.ui.component.blur.cardGlassBackdrop
+import top.yukonga.mishka.ui.component.blur.cardGlassSurface
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -94,21 +97,23 @@ private fun StatusContent(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // 左侧状态卡片
+        val glassBackdrop = cardGlassBackdrop()
         Card(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxHeight(),
-            colors = CardDefaults.defaultColors(color = statusContainer),
+                .fillMaxHeight()
+                .then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp, tint = statusContainer) else Modifier),
+            colors = CardDefaults.defaultColors(color = if (glassBackdrop != null) Color.Transparent else statusContainer),
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .offset(38.dp, 45.dp),
+                        .padding(end = 10.dp, bottom = 10.dp),
                     contentAlignment = Alignment.BottomEnd,
                 ) {
                     Icon(
-                        modifier = Modifier.size(170.dp),
+                        modifier = Modifier.size(128.dp),
                         imageVector = statusIcon,
                         tint = statusTint,
                         contentDescription = null,
@@ -156,11 +161,14 @@ private fun StatusContent(
                 .weight(1f)
                 .fillMaxHeight(),
         ) {
+            val glassBackdrop = cardGlassBackdrop()
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .weight(1f)
+                    .then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp) else Modifier),
                 insideMargin = PaddingValues(16.dp),
+                colors = if (glassBackdrop != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
                 // 停止态也可切：切的是 override，运行中才顺带重启
                 onClick = { showModeDialog = true },
                 showIndication = true,
@@ -182,11 +190,14 @@ private fun StatusContent(
             // RootTproxy 下 tun.enable=false，stack 无意义：展示 Inbound=TPROXY:port 静态信息
             val isTproxy = state.tunMode == TunMode.RootTproxy
             val inboundTproxyLabel = stringResource(R.string.home_inbound_tproxy, TPROXY_INBOUND_PORT)
+            val glassBackdrop2 = cardGlassBackdrop()
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .weight(1f)
+                    .then(if (glassBackdrop2 != null) Modifier.cardGlassSurface(glassBackdrop2, 16.dp, 16.dp) else Modifier),
                 insideMargin = PaddingValues(16.dp),
+                colors = if (glassBackdrop2 != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
                 onClick = { if (isRunning && !isTproxy) showTunStackDialog = true },
                 showIndication = isRunning && !isTproxy,
                 pressFeedbackType = if (isRunning && !isTproxy) PressFeedbackType.Sink else PressFeedbackType.None,

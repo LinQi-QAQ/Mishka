@@ -1,11 +1,26 @@
 package top.yukonga.mishka.ui.screen.settings
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import java.io.File
+import java.io.FileOutputStream
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -23,6 +38,7 @@ import androidx.compose.foundation.text.input.maxLength
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -42,6 +58,8 @@ import top.yukonga.mishka.platform.StorageKeys
 import top.yukonga.mishka.ui.component.AdaptiveTopAppBar
 import top.yukonga.mishka.ui.component.CardItem
 import top.yukonga.mishka.ui.component.blur.BlurredBar
+import top.yukonga.mishka.ui.component.blur.CardGlassBackground
+import top.yukonga.mishka.ui.component.blur.LocalCardBackdrop
 import top.yukonga.mishka.ui.component.blur.rememberBlurBackdrop
 import top.yukonga.mishka.ui.component.groupedCardItems
 import top.yukonga.mishka.ui.theme.BottomBarMode
@@ -99,6 +117,9 @@ fun ThemeSettingsScreen(
         mutableStateOf(storage.getString(StorageKeys.PREDICTIVE_BACK, "false") == "true")
     }
     var densityScaleDraft by remember { mutableFloatStateOf((themeConfig.densityScale * 100f).roundToInt().toFloat()) }
+    var glassBlurDraft by remember { mutableFloatStateOf(themeConfig.cardGlassBlurRadius) }
+    var glassTintDraft by remember { mutableFloatStateOf(themeConfig.cardGlassTintAlpha * 100f) }
+
     var showDensityScaleDialog by remember { mutableStateOf(false) }
     val densityScaleTextState = rememberTextFieldState()
 
@@ -109,6 +130,19 @@ fun ThemeSettingsScreen(
     fun updateTheme(next: ThemeConfig) {
         writeThemeConfig(storage, next)
         onThemeConfigChange(next)
+    }
+
+    val context = LocalContext.current
+    val backgroundScope = rememberCoroutineScope()
+    val pickBackgroundLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri != null) {
+            backgroundScope.launch {
+                val path = withContext(Dispatchers.IO) { saveBackgroundImage(context, uri) }
+                if (path != null) updateTheme(themeConfig.copy(backgroundImagePath = path))
+            }
+        }
     }
 
     fun updateDensityScale(percent: Float) {
@@ -151,10 +185,12 @@ fun ThemeSettingsScreen(
     val isBlurSupported = isRuntimeShaderSupported()
 
     val backdrop = rememberBlurBackdrop()
+    val cardBackdrop = rememberBlurBackdrop()
     val blurActive = backdrop != null
     val barColor = if (blurActive) Color.Transparent else MiuixTheme.colorScheme.surface
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             BlurredBar(backdrop = backdrop, blurActive = blurActive) {
                 AdaptiveTopAppBar(
@@ -174,252 +210,387 @@ fun ThemeSettingsScreen(
             }
         },
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .horizontalCutoutPadding()
-                .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
-                .scrollEndHaptic()
-                .overScrollVertical()
-                .nestedScroll(scrollBehavior.nestedScrollConnection),
-            contentPadding = PaddingValues(top = innerPadding.calculateTopPadding()),
-        ) {
-            item { SmallTitle(text = stringResource(R.string.settings_theme_group_color)) }
-            groupedCardItems(
-                keyPrefix = "theme_color",
-                items = listOf(
-                    CardItem("mode") {
-                        OverlayDropdownPreference(
-                            title = stringResource(R.string.settings_theme_mode),
-                            summary = themeItems.getOrElse(themeConfig.colorMode) { themeItems.first() },
-                            items = themeItems,
-                            selectedIndex = themeConfig.colorMode,
-                            onSelectedIndexChange = { index ->
-                                updateTheme(themeConfig.copy(colorMode = index))
-                            },
-                        )
-                    },
-                    CardItem("monet") {
-                        SwitchPreference(
-                            title = stringResource(R.string.settings_theme_monet),
-                            summary = stringResource(R.string.settings_theme_monet_summary),
-                            checked = themeConfig.useMonet,
-                            onCheckedChange = { checked ->
-                                updateTheme(themeConfig.copy(useMonet = checked))
-                            },
-                        )
-                        AnimatedVisibility(
-                            visible = themeConfig.useMonet,
-                            enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
-                            exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
-                        ) {
-                            Column {
+        CompositionLocalProvider(LocalCardBackdrop provides cardBackdrop) {
+            Box(Modifier.fillMaxSize()) {
+                CardGlassBackground(cardBackdrop)
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .horizontalCutoutPadding()
+                        .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
+                        .scrollEndHaptic()
+                        .overScrollVertical()
+                        .nestedScroll(scrollBehavior.nestedScrollConnection),
+                    contentPadding = PaddingValues(top = innerPadding.calculateTopPadding()),
+                ) {
+                    item { SmallTitle(text = stringResource(R.string.settings_theme_group_color)) }
+                    groupedCardItems(
+                        keyPrefix = "theme_color",
+                        items = listOf(
+                            CardItem("mode") {
                                 OverlayDropdownPreference(
-                                    title = stringResource(R.string.settings_theme_palette_style),
-                                    summary = paletteItems.getOrElse(selectedPaletteIndex) { paletteItems.first() },
-                                    items = paletteItems,
-                                    selectedIndex = selectedPaletteIndex,
+                                    title = stringResource(R.string.settings_theme_mode),
+                                    summary = themeItems.getOrElse(themeConfig.colorMode) { themeItems.first() },
+                                    items = themeItems,
+                                    selectedIndex = themeConfig.colorMode,
                                     onSelectedIndexChange = { index ->
-                                        updateTheme(themeConfig.copy(paletteStyle = paletteStyles[index]))
+                                        updateTheme(themeConfig.copy(colorMode = index))
                                     },
                                 )
-                                OverlayDropdownPreference(
-                                    title = stringResource(R.string.settings_theme_accent_title),
-                                    summary = accentItems.getOrElse(selectedAccentIndex) { accentItems.first() },
-                                    items = accentItems,
-                                    selectedIndex = selectedAccentIndex,
-                                    onSelectedIndexChange = { index ->
-                                        updateTheme(themeConfig.copy(accentColor = accentOptions[index]))
-                                    },
-                                )
+                            },
+                            CardItem("monet") {
                                 SwitchPreference(
-                                    title = stringResource(R.string.settings_theme_pure_black),
-                                    summary = stringResource(R.string.settings_theme_pure_black_summary),
-                                    checked = themeConfig.pureBlack,
+                                    title = stringResource(R.string.settings_theme_monet),
+                                    summary = stringResource(R.string.settings_theme_monet_summary),
+                                    checked = themeConfig.useMonet,
                                     onCheckedChange = { checked ->
-                                        updateTheme(themeConfig.copy(pureBlack = checked))
+                                        updateTheme(themeConfig.copy(useMonet = checked))
                                     },
                                 )
-                            }
-                        }
-                    },
-                ),
-            )
+                                AnimatedVisibility(
+                                    visible = themeConfig.useMonet,
+                                    enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
+                                    exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
+                                ) {
+                                    Column {
+                                        OverlayDropdownPreference(
+                                            title = stringResource(R.string.settings_theme_palette_style),
+                                            summary = paletteItems.getOrElse(selectedPaletteIndex) { paletteItems.first() },
+                                            items = paletteItems,
+                                            selectedIndex = selectedPaletteIndex,
+                                            onSelectedIndexChange = { index ->
+                                                updateTheme(themeConfig.copy(paletteStyle = paletteStyles[index]))
+                                            },
+                                        )
+                                        OverlayDropdownPreference(
+                                            title = stringResource(R.string.settings_theme_accent_title),
+                                            summary = accentItems.getOrElse(selectedAccentIndex) { accentItems.first() },
+                                            items = accentItems,
+                                            selectedIndex = selectedAccentIndex,
+                                            onSelectedIndexChange = { index ->
+                                                updateTheme(themeConfig.copy(accentColor = accentOptions[index]))
+                                            },
+                                        )
+                                        SwitchPreference(
+                                            title = stringResource(R.string.settings_theme_pure_black),
+                                            summary = stringResource(R.string.settings_theme_pure_black_summary),
+                                            checked = themeConfig.pureBlack,
+                                            onCheckedChange = { checked ->
+                                                updateTheme(themeConfig.copy(pureBlack = checked))
+                                            },
+                                        )
+                                    }
+                                }
+                            },
+                        ),
+                    )
 
-            item { SmallTitle(text = stringResource(R.string.settings_theme_group_interface)) }
-            groupedCardItems(
-                keyPrefix = "theme_interface",
-                items = buildList {
-                    add(CardItem("blur") {
-                        SwitchPreference(
-                            title = stringResource(R.string.settings_theme_blur),
-                            summary = stringResource(R.string.settings_theme_blur_summary),
-                            checked = themeConfig.blurEnabled && isBlurSupported,
-                            onCheckedChange = { checked ->
-                                updateTheme(themeConfig.copy(blurEnabled = checked))
-                            },
-                            enabled = isBlurSupported,
-                        )
-                        AnimatedVisibility(
-                            visible = themeConfig.blurEnabled && isBlurSupported,
-                            enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
-                            exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
-                        ) {
-                            OverlayDropdownPreference(
-                                title = stringResource(R.string.settings_theme_blur_style),
-                                summary = topBarBlurStyleSummaries.getOrElse(selectedTopBarBlurStyleIndex) {
-                                    topBarBlurStyleSummaries.first()
-                                },
-                                items = topBarBlurStyleItems,
-                                selectedIndex = selectedTopBarBlurStyleIndex,
-                                onSelectedIndexChange = { index ->
-                                    updateTheme(themeConfig.copy(topBarBlurStyle = topBarBlurStyles[index]))
-                                },
-                            )
-                        }
-                    })
-                    if (onPredictiveBackChange != null) {
-                        add(CardItem("predictiveBack") {
-                            SwitchPreference(
-                                title = stringResource(R.string.settings_predictive_back),
-                                summary = stringResource(R.string.settings_predictive_back_summary),
-                                checked = isPredictiveBackEnabled,
-                                onCheckedChange = { checked ->
-                                    storage.putString(StorageKeys.PREDICTIVE_BACK, checked.toString())
-                                    isPredictiveBackEnabled = checked
-                                    onPredictiveBackChange(checked)
-                                },
-                            )
-                        })
-                    }
-                    add(CardItem("densityScale") {
-                        ArrowPreference(
-                            title = stringResource(R.string.settings_theme_density_scale),
-                            summary = stringResource(R.string.settings_theme_density_scale_summary),
-                            endActions = {
-                                Text(
-                                    text = formatDensityScalePercent(densityScaleDraft),
-                                    fontSize = MiuixTheme.textStyles.body2.fontSize,
-                                    color = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                                )
-                            },
-                            bottomAction = {
-                                Slider(
-                                    value = densityScaleDraft.coerceIn(
-                                        MinDensityScale * 100f,
-                                        MaxDensityScale * 100f,
-                                    ),
-                                    onValueChange = { value ->
-                                        densityScaleDraft = value
+                    item { SmallTitle(text = stringResource(R.string.settings_theme_group_interface)) }
+                    groupedCardItems(
+                        keyPrefix = "theme_interface",
+                        items = buildList {
+                            add(CardItem("blur") {
+                                SwitchPreference(
+                                    title = stringResource(R.string.settings_theme_blur),
+                                    summary = stringResource(R.string.settings_theme_blur_summary),
+                                    checked = themeConfig.blurEnabled && isBlurSupported,
+                                    onCheckedChange = { checked ->
+                                        updateTheme(themeConfig.copy(blurEnabled = checked))
                                     },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    valueRange = (MinDensityScale * 100f)..(MaxDensityScale * 100f),
-                                    onValueChangeFinished = {
-                                        updateDensityScale(densityScaleDraft)
-                                    },
-                                    showKeyPoints = true,
-                                    keyPoints = listOf(80f, 90f, 100f, 110f),
-                                    // magnetThreshold 是 range 占比：0.01 = 1%，仅在关键点附近轻微吸附
-                                    magnetThreshold = 0.01f,
-                                    hapticEffect = SliderDefaults.SliderHapticEffect.Step,
+                                    enabled = isBlurSupported,
                                 )
-                            },
-                            onClick = ::openDensityScaleDialog,
-                            holdDownState = showDensityScaleDialog,
-                        )
-                    })
-                },
-            )
-
-            item { SmallTitle(text = stringResource(R.string.settings_theme_group_navigation)) }
-            groupedCardItems(
-                keyPrefix = "theme_navigation",
-                items = buildList {
-                    add(CardItem("pagerGesture") {
-                        OverlayDropdownPreference(
-                            title = stringResource(R.string.settings_theme_pager_gesture),
-                            summary = pagerInterceptionModeItems.getOrElse(
-                                selectedPagerInterceptionModeIndex,
-                            ) { pagerInterceptionModeItems.first() },
-                            items = pagerInterceptionModeItems,
-                            selectedIndex = selectedPagerInterceptionModeIndex,
-                            onSelectedIndexChange = { index ->
-                                updateTheme(
-                                    themeConfig.copy(
-                                        pagerInterceptionMode = pagerInterceptionModes[index],
-                                    ),
-                                )
-                            },
-                        )
-                    })
-                    if (onSwipeDismissChange != null) {
-                        add(CardItem("swipeDismiss") {
-                            SwitchPreference(
-                                title = stringResource(R.string.settings_swipe_dismiss),
-                                summary = stringResource(R.string.settings_swipe_dismiss_summary),
-                                checked = swipeDismissEnabled,
-                                onCheckedChange = { checked -> onSwipeDismissChange(checked) },
-                            )
-                        })
-                    }
-                    add(CardItem("floating") {
-                        SwitchPreference(
-                            title = stringResource(R.string.settings_theme_floating_bottom_bar),
-                            summary = stringResource(R.string.settings_theme_floating_bottom_bar_summary),
-                            checked = themeConfig.floatingBottomBar,
-                            onCheckedChange = { checked ->
-                                updateTheme(themeConfig.copy(floatingBottomBar = checked))
-                            },
-                        )
-                        AnimatedVisibility(
-                            visible = themeConfig.floatingBottomBar,
-                            enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
-                            exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
-                        ) {
-                            OverlayDropdownPreference(
-                                title = stringResource(R.string.settings_theme_floating_bottom_bar_style),
-                                summary = floatingBottomBarStyleItems.getOrElse(
-                                    selectedFloatingBottomBarStyleIndex,
-                                ) { floatingBottomBarStyleItems.first() },
-                                items = floatingBottomBarStyleItems,
-                                selectedIndex = selectedFloatingBottomBarStyleIndex,
-                                onSelectedIndexChange = { index ->
-                                    updateTheme(
-                                        themeConfig.copy(
-                                            floatingBottomBarStyle = floatingBottomBarStyles[index],
-                                        ),
+                                AnimatedVisibility(
+                                    visible = themeConfig.blurEnabled && isBlurSupported,
+                                    enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
+                                    exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
+                                ) {
+                                    OverlayDropdownPreference(
+                                        title = stringResource(R.string.settings_theme_blur_style),
+                                        summary = topBarBlurStyleSummaries.getOrElse(selectedTopBarBlurStyleIndex) {
+                                            topBarBlurStyleSummaries.first()
+                                        },
+                                        items = topBarBlurStyleItems,
+                                        selectedIndex = selectedTopBarBlurStyleIndex,
+                                        onSelectedIndexChange = { index ->
+                                            updateTheme(themeConfig.copy(topBarBlurStyle = topBarBlurStyles[index]))
+                                        },
                                     )
-                                },
-                            )
-                        }
-                    })
-                    add(CardItem("mode") {
-                        OverlayDropdownPreference(
-                            title = stringResource(R.string.settings_theme_bottom_bar_mode),
-                            summary = bottomBarModeItems.getOrElse(
-                                selectedBottomBarModeIndex,
-                            ) { bottomBarModeItems.first() },
-                            items = bottomBarModeItems,
-                            selectedIndex = selectedBottomBarModeIndex,
-                            onSelectedIndexChange = { index ->
-                                updateTheme(
-                                    themeConfig.copy(
-                                        bottomBarMode = bottomBarModes[index],
-                                    ),
+                                }
+                            })
+                            add(CardItem("cardGlass") {
+                                SwitchPreference(
+                                    title = stringResource(R.string.settings_theme_card_glass),
+                                    summary = stringResource(R.string.settings_theme_card_glass_summary),
+                                    checked = themeConfig.cardLiquidGlass && themeConfig.blurEnabled && isBlurSupported,
+                                    onCheckedChange = { checked ->
+                                        updateTheme(themeConfig.copy(cardLiquidGlass = checked))
+                                    },
+                                    enabled = themeConfig.blurEnabled && isBlurSupported,
                                 )
-                            },
-                        )
-                    })
-                },
-            )
-            item {
-                Spacer(
-                    Modifier
-                        .height(24.dp)
-                        .navigationBarsPadding()
-                )
-            }
+                                AnimatedVisibility(
+                                    visible = themeConfig.cardLiquidGlass && themeConfig.blurEnabled && isBlurSupported,
+                                    enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
+                                    exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
+                                ) {
+                                    Column {
+                                        ArrowPreference(
+                                            title = stringResource(R.string.settings_theme_card_glass_blur),
+                                            summary = stringResource(R.string.settings_theme_card_glass_blur_summary),
+                                            endActions = {
+                                                Text(
+                                                    text = "${glassBlurDraft.roundToInt()}dp",
+                                                    fontSize = MiuixTheme.textStyles.body2.fontSize,
+                                                    color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                                )
+                                            },
+                                            bottomAction = {
+                                                Slider(
+                                                    value = glassBlurDraft,
+                                                    onValueChange = { value -> glassBlurDraft = value },
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    valueRange = 5f..40f,
+                                                    onValueChangeFinished = {
+                                                        updateTheme(
+                                                            themeConfig.copy(
+                                                                cardGlassBlurRadius = glassBlurDraft,
+                                                            )
+                                                        )
+                                                    },
+                                                    hapticEffect = SliderDefaults.SliderHapticEffect.Step,
+                                                )
+                                            },
+                                            onClick = {},
+                                        )
+                                        ArrowPreference(
+                                            title = stringResource(R.string.settings_theme_card_glass_tint),
+                                            summary = stringResource(R.string.settings_theme_card_glass_tint_summary),
+                                            endActions = {
+                                                Text(
+                                                    text = "${glassTintDraft.roundToInt()}%",
+                                                    fontSize = MiuixTheme.textStyles.body2.fontSize,
+                                                    color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                                )
+                                            },
+                                            bottomAction = {
+                                                Slider(
+                                                    value = glassTintDraft,
+                                                    onValueChange = { value -> glassTintDraft = value },
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    valueRange = 10f..90f,
+                                                    onValueChangeFinished = {
+                                                        updateTheme(
+                                                            themeConfig.copy(
+                                                                cardGlassTintAlpha = glassTintDraft / 100f,
+                                                            )
+                                                        )
+                                                    },
+                                                    hapticEffect = SliderDefaults.SliderHapticEffect.Step,
+                                                )
+                                            },
+                                            onClick = {},
+                                        )
+                                    }
+                                }
+                            })
+                            add(CardItem("backgroundImage") {
+                                ArrowPreference(
+                                    title = stringResource(R.string.settings_theme_background),
+                                    summary = if (themeConfig.backgroundImagePath != null) {
+                                        stringResource(R.string.settings_theme_background_custom)
+                                    } else {
+                                        stringResource(R.string.settings_theme_background_none)
+                                    },
+                                    onClick = {
+                                        pickBackgroundLauncher.launch(
+                                            PickVisualMediaRequest(
+                                                ActivityResultContracts.PickVisualMedia.ImageOnly
+                                            )
+                                        )
+                                    },
+                                )
+                                if (themeConfig.backgroundImagePath != null) {
+                                    val textModeItems = listOf(
+                                        stringResource(R.string.settings_theme_background_text_auto),
+                                        stringResource(R.string.settings_theme_background_text_dark),
+                                        stringResource(R.string.settings_theme_background_text_light),
+                                    )
+                                    val selectedTextMode = when (themeConfig.backgroundTextMode) {
+                                        "dark" -> 1
+                                        "light" -> 2
+                                        else -> 0
+                                    }
+                                    OverlayDropdownPreference(
+                                        title = stringResource(R.string.settings_theme_background_text),
+                                        summary = textModeItems[selectedTextMode],
+                                        items = textModeItems,
+                                        selectedIndex = selectedTextMode,
+                                        onSelectedIndexChange = { index ->
+                                            updateTheme(
+                                                themeConfig.copy(
+                                                    backgroundTextMode = when (index) {
+                                                        1 -> "dark"
+                                                        2 -> "light"
+                                                        else -> "auto"
+                                                    },
+                                                )
+                                            )
+                                        },
+                                    )
+                                    ArrowPreference(
+                                        title = stringResource(R.string.settings_theme_background_clear),
+                                        onClick = {
+                                            themeConfig.backgroundImagePath?.let { path ->
+                                                runCatching { File(path).delete() }
+                                            }
+                                            updateTheme(themeConfig.copy(backgroundImagePath = null))
+                                        },
+                                    )
+                                }
+                            })
+                            if (onPredictiveBackChange != null) {
+                                add(CardItem("predictiveBack") {
+                                    SwitchPreference(
+                                        title = stringResource(R.string.settings_predictive_back),
+                                        summary = stringResource(R.string.settings_predictive_back_summary),
+                                        checked = isPredictiveBackEnabled,
+                                        onCheckedChange = { checked ->
+                                            storage.putString(StorageKeys.PREDICTIVE_BACK, checked.toString())
+                                            isPredictiveBackEnabled = checked
+                                            onPredictiveBackChange(checked)
+                                        },
+                                    )
+                                })
+                            }
+                            add(CardItem("densityScale") {
+                                ArrowPreference(
+                                    title = stringResource(R.string.settings_theme_density_scale),
+                                    summary = stringResource(R.string.settings_theme_density_scale_summary),
+                                    endActions = {
+                                        Text(
+                                            text = formatDensityScalePercent(densityScaleDraft),
+                                            fontSize = MiuixTheme.textStyles.body2.fontSize,
+                                            color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                        )
+                                    },
+                                    bottomAction = {
+                                        Slider(
+                                            value = densityScaleDraft.coerceIn(
+                                                MinDensityScale * 100f,
+                                                MaxDensityScale * 100f,
+                                            ),
+                                            onValueChange = { value ->
+                                                densityScaleDraft = value
+                                            },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            valueRange = (MinDensityScale * 100f)..(MaxDensityScale * 100f),
+                                            onValueChangeFinished = {
+                                                updateDensityScale(densityScaleDraft)
+                                            },
+                                            showKeyPoints = true,
+                                            keyPoints = listOf(80f, 90f, 100f, 110f),
+                                            // magnetThreshold 是 range 占比：0.01 = 1%，仅在关键点附近轻微吸附
+                                            magnetThreshold = 0.01f,
+                                            hapticEffect = SliderDefaults.SliderHapticEffect.Step,
+                                        )
+                                    },
+                                    onClick = ::openDensityScaleDialog,
+                                    holdDownState = showDensityScaleDialog,
+                                )
+                            })
+                        },
+                    )
 
+                    item { SmallTitle(text = stringResource(R.string.settings_theme_group_navigation)) }
+                    groupedCardItems(
+                        keyPrefix = "theme_navigation",
+                        items = buildList {
+                            add(CardItem("pagerGesture") {
+                                OverlayDropdownPreference(
+                                    title = stringResource(R.string.settings_theme_pager_gesture),
+                                    summary = pagerInterceptionModeItems.getOrElse(
+                                        selectedPagerInterceptionModeIndex,
+                                    ) { pagerInterceptionModeItems.first() },
+                                    items = pagerInterceptionModeItems,
+                                    selectedIndex = selectedPagerInterceptionModeIndex,
+                                    onSelectedIndexChange = { index ->
+                                        updateTheme(
+                                            themeConfig.copy(
+                                                pagerInterceptionMode = pagerInterceptionModes[index],
+                                            ),
+                                        )
+                                    },
+                                )
+                            })
+                            if (onSwipeDismissChange != null) {
+                                add(CardItem("swipeDismiss") {
+                                    SwitchPreference(
+                                        title = stringResource(R.string.settings_swipe_dismiss),
+                                        summary = stringResource(R.string.settings_swipe_dismiss_summary),
+                                        checked = swipeDismissEnabled,
+                                        onCheckedChange = { checked -> onSwipeDismissChange(checked) },
+                                    )
+                                })
+                            }
+                            add(CardItem("floating") {
+                                SwitchPreference(
+                                    title = stringResource(R.string.settings_theme_floating_bottom_bar),
+                                    summary = stringResource(R.string.settings_theme_floating_bottom_bar_summary),
+                                    checked = themeConfig.floatingBottomBar,
+                                    onCheckedChange = { checked ->
+                                        updateTheme(themeConfig.copy(floatingBottomBar = checked))
+                                    },
+                                )
+                                AnimatedVisibility(
+                                    visible = themeConfig.floatingBottomBar,
+                                    enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
+                                    exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
+                                ) {
+                                    OverlayDropdownPreference(
+                                        title = stringResource(R.string.settings_theme_floating_bottom_bar_style),
+                                        summary = floatingBottomBarStyleItems.getOrElse(
+                                            selectedFloatingBottomBarStyleIndex,
+                                        ) { floatingBottomBarStyleItems.first() },
+                                        items = floatingBottomBarStyleItems,
+                                        selectedIndex = selectedFloatingBottomBarStyleIndex,
+                                        onSelectedIndexChange = { index ->
+                                            updateTheme(
+                                                themeConfig.copy(
+                                                    floatingBottomBarStyle = floatingBottomBarStyles[index],
+                                                ),
+                                            )
+                                        },
+                                    )
+                                }
+                            })
+                            add(CardItem("mode") {
+                                OverlayDropdownPreference(
+                                    title = stringResource(R.string.settings_theme_bottom_bar_mode),
+                                    summary = bottomBarModeItems.getOrElse(
+                                        selectedBottomBarModeIndex,
+                                    ) { bottomBarModeItems.first() },
+                                    items = bottomBarModeItems,
+                                    selectedIndex = selectedBottomBarModeIndex,
+                                    onSelectedIndexChange = { index ->
+                                        updateTheme(
+                                            themeConfig.copy(
+                                                bottomBarMode = bottomBarModes[index],
+                                            ),
+                                        )
+                                    },
+                                )
+                            })
+                        },
+                    )
+                    item {
+                        Spacer(
+                            Modifier
+                                .height(24.dp)
+                                .navigationBarsPadding()
+                        )
+                    }
+
+                }
+            }
         }
     }
 
@@ -492,3 +663,19 @@ private val DigitsOnlyTransformation = InputTransformation {
 }
 
 private fun formatDensityScalePercent(value: Float): String = "${value.roundToInt()}%"
+
+/** 把选中的图片压到 1440px 内另存为应用内背景图，返回落盘路径；失败返回 null。 */
+private fun saveBackgroundImage(context: Context, uri: Uri): String? = runCatching {
+    val resolver = context.contentResolver
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@runCatching null
+    var sample = 1
+    while (bounds.outWidth / sample > 1440 || bounds.outHeight / sample > 1440) sample *= 2
+    val bitmap = resolver.openInputStream(uri)?.use {
+        BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample })
+    } ?: return@runCatching null
+    val file = File(File(context.filesDir, "theme").apply { mkdirs() }, "background.jpg")
+    FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it) }
+    file.absolutePath
+}.getOrNull()

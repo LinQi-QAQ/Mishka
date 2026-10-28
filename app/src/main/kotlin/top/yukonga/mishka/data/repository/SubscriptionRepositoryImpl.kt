@@ -68,6 +68,11 @@ class SubscriptionRepositoryImpl(
 
     private val profileLock = Mutex()
     private val _activeUuid = MutableStateFlow(storage.getString(StorageKeys.ACTIVE_PROFILE_UUID, ""))
+
+    /** 用户自定义订阅顺序（订阅 ID 名单）；prefs 只是落盘，运行时以这条流为准并参与列表合并 */
+    private val _subscriptionOrder = MutableStateFlow(
+        storage.getString(StorageKeys.SUBSCRIPTION_ORDER, "").decodeOverrideIds(),
+    )
     private val _subscriptions = MutableStateFlow<ImmutableList<Subscription>>(persistentListOf())
     override val subscriptions: StateFlow<ImmutableList<Subscription>> = _subscriptions.asStateFlow()
 
@@ -108,11 +113,14 @@ class SubscriptionRepositoryImpl(
     }
 
     private suspend fun collectProfiles() {
-        combine(importedDao.getAllFlow(), _activeUuid, _liveProvider) { entities, activeId, live ->
+        combine(importedDao.getAllFlow(), _activeUuid, _liveProvider, _subscriptionOrder) { entities, activeId, live, order ->
             // pending 一次取回建表：逐条 queryByUUID 会让任意 imported 写入 / active 切换 /
             // live 推送都放大成 N 次查询
             val pendingMap = pendingDao.queryAll().associateBy { it.uuid }
-            entities.map { resolveProfile(it, pendingMap[it.uuid], activeId, live) }
+            // 用户自定义顺序优先：名单内按名单序，名单外保持 DAO 的 createdAt 序（sortedBy 稳定排序）
+            val orderIndex = order.withIndex().associate { (index, id) -> id to index }
+            entities.sortedBy { orderIndex[it.uuid] ?: Int.MAX_VALUE }
+                .map { resolveProfile(it, pendingMap[it.uuid], activeId, live) }
                 .toPersistentList()
             // 目录 mtime 是阻塞 stat，appScope 跑在 Default
         }.flowOn(Dispatchers.IO).collect { subs ->
@@ -341,6 +349,12 @@ class SubscriptionRepositoryImpl(
 
     suspend fun loadActiveRuntimeSubscription(): Subscription? =
         _activeUuid.value.takeIf { it.isNotEmpty() }?.let { loadRuntimeSubscription(it) }
+
+    /** 保存用户自定义订阅顺序：写 prefs 落盘 + 更新内存流触发列表重排 */
+    override suspend fun reorderSubscriptions(orderedIds: List<String>) = profileLock.withLock {
+        storage.putString(StorageKeys.SUBSCRIPTION_ORDER, orderedIds.encodeOverrideIds())
+        _subscriptionOrder.value = orderedIds.toPersistentList()
+    }
 
     /** 保存订阅的覆写选择；顺序字段与内容文件一起作为运行时快照。 */
     override suspend fun setOverrideSelection(

@@ -1,0 +1,380 @@
+diff --git a/component/dialer/dialer.go b/component/dialer/dialer.go
+index 6a05c8bc..3efbf078 100644
+--- a/component/dialer/dialer.go
++++ b/component/dialer/dialer.go
+@@ -38,6 +38,18 @@ func GetTcpConcurrent() bool {
+ }
+ 
+ func DialContext(ctx context.Context, network, address string, options ...Option) (net.Conn, error) {
++	conn, err := dialContextRaw(ctx, network, address, options...)
++	if err != nil {
++		return nil, err
++	}
++	if strings.HasPrefix(network, "tcp") {
++		// TLS 分片开启时在此统一包装，覆盖全部出站（含 Reality 的 uTLS 写入）
++		return WrapFragmentConn(conn), nil
++	}
++	return conn, nil
++}
++
++func dialContextRaw(ctx context.Context, network, address string, options ...Option) (net.Conn, error) {
+ 	opt := applyOptions(options...)
+ 
+ 	if opt.network == 4 || opt.network == 6 {
+diff --git a/component/dialer/fragment.go b/component/dialer/fragment.go
+new file mode 100644
+index 00000000..63cb5c21
+--- /dev/null
++++ b/component/dialer/fragment.go
+@@ -0,0 +1,156 @@
++package dialer
++
++import (
++	"net"
++	"strconv"
++	"strings"
++	"sync/atomic"
++	"time"
++
++	"github.com/metacubex/mihomo/log"
++
++	"github.com/metacubex/randv2"
++)
++
++// TLS ClientHello 分片（tls-fragment）：把出站连接的第一笔 TLS 握手数据拆成
++// 多个小段、带随机间隔分开发送，让 DPI 难以在一个包内读到完整 SNI。
++// 包装层只判定首笔写入是否为 ClientHello，非 TLS 流量原样直通；
++// 分片只是改变 TCP 分段，字节流本身不变，TLS 对端无感。
++
++type FragmentConfig struct {
++	Enable      bool
++	SizeMin     int
++	SizeMax     int
++	IntervalMin time.Duration
++	IntervalMax time.Duration
++}
++
++var fragmentConfig atomic.Pointer[FragmentConfig]
++
++// SetFragmentConfig 由 executor 在配置生效时调用；size（字节）与 interval（毫秒）
++// 取 "min-max" 区间字符串，单值视为定值，非法或缺省回退到 10-20。
++func SetFragmentConfig(enable bool, size string, interval string) {
++	if !enable {
++		fragmentConfig.Store(nil)
++		return
++	}
++	sizeMin, sizeMax := parseFragmentRange(size, 10, 20)
++	intervalMin, intervalMax := parseFragmentRange(interval, 10, 20)
++	fragmentConfig.Store(&FragmentConfig{
++		Enable:      true,
++		SizeMin:     sizeMin,
++		SizeMax:     sizeMax,
++		IntervalMin: time.Duration(intervalMin) * time.Millisecond,
++		IntervalMax: time.Duration(intervalMax) * time.Millisecond,
++	})
++	log.Infoln("TLS fragment enabled: size %d-%d bytes, interval %d-%d ms", sizeMin, sizeMax, intervalMin, intervalMax)
++}
++
++func parseFragmentRange(s string, defMin, defMax int) (int, int) {
++	s = strings.TrimSpace(s)
++	if s == "" {
++		return defMin, defMax
++	}
++	lo, hi, found := strings.Cut(s, "-")
++	loVal, err := strconv.Atoi(strings.TrimSpace(lo))
++	if err != nil || loVal <= 0 {
++		return defMin, defMax
++	}
++	if !found {
++		return loVal, loVal
++	}
++	hiVal, err := strconv.Atoi(strings.TrimSpace(hi))
++	if err != nil || hiVal < loVal {
++		return defMin, defMax
++	}
++	return loVal, hiVal
++}
++
++func WrapFragmentConn(conn net.Conn) net.Conn {
++	cfg := fragmentConfig.Load()
++	if cfg == nil {
++		return conn
++	}
++	return &fragmentConn{Conn: conn, cfg: cfg}
++}
++
++type fragmentConn struct {
++	net.Conn
++	cfg   *FragmentConfig
++	state int // 0 未判定（可能在等首笔写入攒够判定字节），1 已处理/直通
++	head  []byte
++}
++
++func (c *fragmentConn) Write(b []byte) (int, error) {
++	if c.state == 1 {
++		return c.Conn.Write(b)
++	}
++	data := b
++	if c.head != nil {
++		data = append(c.head, b...)
++	}
++	if len(data) < 6 {
++		// 判定 ClientHello 至少需要 6 字节，先缓存并假装写成功
++		c.head = append([]byte(nil), data...)
++		return len(b), nil
++	}
++	c.head = nil
++	c.state = 1
++	if isClientHello(data) {
++		if err := c.writeFragmented(data); err != nil {
++			return 0, err
++		}
++		return len(b), nil
++	}
++	if err := writeAll(c.Conn, data); err != nil {
++		return 0, err
++	}
++	return len(b), nil
++}
++
++func isClientHello(b []byte) bool {
++	// TLS 记录头：0x16 = handshake，0x03 = 主版本；载荷首字节 0x01 = client_hello
++	return len(b) >= 6 && b[0] == 0x16 && b[1] == 0x03 && b[5] == 0x01
++}
++
++func (c *fragmentConn) writeFragmented(b []byte) error {
++	for len(b) > 0 {
++		n := c.cfg.chunkSize()
++		if n > len(b) {
++			n = len(b)
++		}
++		if err := writeAll(c.Conn, b[:n]); err != nil {
++			return err
++		}
++		b = b[n:]
++		if len(b) > 0 {
++			time.Sleep(c.cfg.interval())
++		}
++	}
++	return nil
++}
++
++func (c *FragmentConfig) chunkSize() int {
++	if c.SizeMax <= c.SizeMin {
++		return c.SizeMin
++	}
++	return c.SizeMin + randv2.IntN(c.SizeMax-c.SizeMin+1)
++}
++
++func (c *FragmentConfig) interval() time.Duration {
++	if c.IntervalMax <= c.IntervalMin {
++		return c.IntervalMin
++	}
++	return c.IntervalMin + time.Duration(randv2.IntN(int(c.IntervalMax-c.IntervalMin)/int(time.Millisecond)+1))*time.Millisecond
++}
++
++func writeAll(conn net.Conn, b []byte) error {
++	for len(b) > 0 {
++		n, err := conn.Write(b)
++		if err != nil {
++			return err
++		}
++		b = b[n:]
++	}
++	return nil
++}
+diff --git a/component/dialer/fragment_test.go b/component/dialer/fragment_test.go
+new file mode 100644
+index 00000000..15664eb8
+--- /dev/null
++++ b/component/dialer/fragment_test.go
+@@ -0,0 +1,131 @@
++package dialer
++
++import (
++	"bytes"
++	"net"
++	"testing"
++	"time"
++)
++
++type recordConn struct {
++	net.Conn
++	writes [][]byte
++}
++
++func (c *recordConn) Write(b []byte) (int, error) {
++	c.writes = append(c.writes, append([]byte(nil), b...))
++	return len(b), nil
++}
++
++func (c *recordConn) allBytes() []byte {
++	var out []byte
++	for _, w := range c.writes {
++		out = append(out, w...)
++	}
++	return out
++}
++
++func testFragmentConfig() *FragmentConfig {
++	return &FragmentConfig{
++		Enable:      true,
++		SizeMin:     10,
++		SizeMax:     20,
++		IntervalMin: 0,
++		IntervalMax: 0,
++	}
++}
++
++func TestFragmentConnSplitsClientHello(t *testing.T) {
++	hello := []byte{0x16, 0x03, 0x01, 0x00, 0x2e, 0x01, 0x00, 0x00, 0x2a, 0x03, 0x03}
++	hello = append(hello, bytes.Repeat([]byte{0x42}, 90)...)
++	rc := &recordConn{}
++	fc := &fragmentConn{Conn: rc, cfg: testFragmentConfig()}
++
++	n, err := fc.Write(hello)
++	if err != nil {
++		t.Fatalf("write: %v", err)
++	}
++	if n != len(hello) {
++		t.Fatalf("written %d, want %d", n, len(hello))
++	}
++	if len(rc.writes) < 3 {
++		t.Fatalf("expected fragmented writes, got %d writes", len(rc.writes))
++	}
++	for i, w := range rc.writes {
++		if len(w) > 20 {
++			t.Fatalf("write %d too large: %d bytes", i, len(w))
++		}
++	}
++	if !bytes.Equal(rc.allBytes(), hello) {
++		t.Fatal("reassembled bytes differ from original ClientHello")
++	}
++
++	// 分片只处理首笔，后续写入直通
++	rc.writes = nil
++	payload := []byte("application data")
++	if _, err := fc.Write(payload); err != nil {
++		t.Fatalf("second write: %v", err)
++	}
++	if len(rc.writes) != 1 || !bytes.Equal(rc.writes[0], payload) {
++		t.Fatal("second write should pass through untouched")
++	}
++}
++
++func TestFragmentConnPassthroughNonTLS(t *testing.T) {
++	rc := &recordConn{}
++	fc := &fragmentConn{Conn: rc, cfg: testFragmentConfig()}
++
++	data := []byte("GET / HTTP/1.1\r\n\r\n")
++	if _, err := fc.Write(data); err != nil {
++		t.Fatalf("write: %v", err)
++	}
++	if len(rc.writes) != 1 || !bytes.Equal(rc.writes[0], data) {
++		t.Fatal("non-TLS first write should pass through untouched")
++	}
++}
++
++func TestFragmentConnShortFirstWrite(t *testing.T) {
++	rc := &recordConn{}
++	fc := &fragmentConn{Conn: rc, cfg: testFragmentConfig()}
++
++	// 首笔只有 3 字节（记录头的一部分），应先缓存、不落盘
++	if _, err := fc.Write([]byte{0x16, 0x03, 0x01}); err != nil {
++		t.Fatalf("write1: %v", err)
++	}
++	if len(rc.writes) != 0 {
++		t.Fatal("short first write should be buffered, not flushed")
++	}
++	rest := append([]byte{0x00, 0x2e, 0x01}, bytes.Repeat([]byte{0x42}, 60)...)
++	if _, err := fc.Write(rest); err != nil {
++		t.Fatalf("write2: %v", err)
++	}
++	want := append([]byte{0x16, 0x03, 0x01}, rest...)
++	if !bytes.Equal(rc.allBytes(), want) {
++		t.Fatal("buffered + following bytes should reassemble into the ClientHello")
++	}
++}
++
++func TestParseFragmentRange(t *testing.T) {
++	cases := []struct {
++		in       string
++		wantMin  int
++		wantMax  int
++		defMin   int
++		defMax   int
++	}{
++		{"10-20", 10, 20, 10, 20},
++		{"15", 15, 15, 10, 20},
++		{"", 10, 20, 10, 20},
++		{"abc", 10, 20, 10, 20},
++		{"20-10", 10, 20, 10, 20},
++		{"5 - 8", 5, 8, 10, 20},
++	}
++	for _, c := range cases {
++		lo, hi := parseFragmentRange(c.in, c.defMin, c.defMax)
++		if lo != c.wantMin || hi != c.wantMax {
++			t.Errorf("parseFragmentRange(%q) = %d-%d, want %d-%d", c.in, lo, hi, c.wantMin, c.wantMax)
++		}
++	}
++}
++
++var _ = time.Millisecond
+diff --git a/config/config.go b/config/config.go
+index f29100de..4320e380 100644
+--- a/config/config.go
++++ b/config/config.go
+@@ -62,6 +62,7 @@ type General struct {
+ 	GeodataLoader     string                  `json:"geodata-loader"`
+ 	GeositeMatcher    string                  `json:"geosite-matcher"`
+ 	TCPConcurrent     bool                    `json:"tcp-concurrent"`
++	TLSFragment       *RawTLSFragment         `json:"tls-fragment"`
+ 	FindProcessMode   process.FindProcessMode `json:"find-process-mode"`
+ 	Sniffing          bool                    `json:"sniffing"`
+ 	GlobalUA          string                  `json:"global-ua"`
+@@ -220,6 +221,12 @@ type RawCors struct {
+ 	AllowPrivateNetwork bool     `yaml:"allow-private-network" json:"allow-private-network"`
+ }
+ 
++type RawTLSFragment struct {
++	Enable   bool   `yaml:"enable" json:"enable"`
++	Size     string `yaml:"size" json:"size"`
++	Interval string `yaml:"interval" json:"interval"`
++}
++
+ type RawDNS struct {
+ 	Enable                       bool                                `yaml:"enable" json:"enable"`
+ 	PreferH3                     bool                                `yaml:"prefer-h3" json:"prefer-h3"`
+@@ -442,6 +449,7 @@ type RawConfig struct {
+ 	GeodataLoader                 string                  `yaml:"geodata-loader" json:"geodata-loader"`
+ 	GeositeMatcher                string                  `yaml:"geosite-matcher" json:"geosite-matcher"`
+ 	TCPConcurrent                 bool                    `yaml:"tcp-concurrent" json:"tcp-concurrent"`
++	TLSFragment                   *RawTLSFragment         `yaml:"tls-fragment" json:"tls-fragment"`
+ 	FindProcessMode               process.FindProcessMode `yaml:"find-process-mode" json:"find-process-mode"`
+ 	GlobalClientFingerprint       string                  `yaml:"global-client-fingerprint" json:"global-client-fingerprint"`
+ 	GlobalUA                      string                  `yaml:"global-ua" json:"global-ua"`
+@@ -820,6 +828,7 @@ func parseGeneral(cfg *RawConfig) (*General, error) {
+ 		GeodataLoader:     cfg.GeodataLoader,
+ 		GeositeMatcher:    cfg.GeositeMatcher,
+ 		TCPConcurrent:     cfg.TCPConcurrent,
++		TLSFragment:       cfg.TLSFragment,
+ 		FindProcessMode:   cfg.FindProcessMode,
+ 		GlobalUA:          cfg.GlobalUA,
+ 		ETagSupport:       cfg.ETagSupport,
+diff --git a/hub/executor/executor.go b/hub/executor/executor.go
+index 796face2..493af9ff 100644
+--- a/hub/executor/executor.go
++++ b/hub/executor/executor.go
+@@ -400,6 +400,12 @@ func updateGeneral(general *config.General, logging bool) {
+ 		log.Infoln("Use tcp concurrent")
+ 	}
+ 
++	if general.TLSFragment != nil {
++		dialer.SetFragmentConfig(general.TLSFragment.Enable, general.TLSFragment.Size, general.TLSFragment.Interval)
++	} else {
++		dialer.SetFragmentConfig(false, "", "")
++	}
++
+ 	inbound.SetTfo(general.InboundTfo)
+ 	inbound.SetMPTCP(general.InboundMPTCP)
+ 

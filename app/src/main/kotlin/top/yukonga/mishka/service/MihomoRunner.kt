@@ -176,7 +176,7 @@ class MihomoRunner(private val context: Context) {
         if (childPid > 0) {
             Log.i(TAG, "Stopping mihomo pid=$childPid (root=$isRootMode)")
             if (isRootMode) {
-                val tunDevice = PlatformStorage(context).getString(StorageKeys.ROOT_TUN_DEVICE, "Mishka")
+                val tunDevice = PlatformStorage(context).getString(StorageKeys.ROOT_TUN_DEVICE, "SakuraClash")
                 val killed = RootHelper.killAsRoot(childPid, tunDevice)
                 if (!killed) {
                     RootHelper.killMihomoByName(tunDevice)

@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.FloatState
 import androidx.compose.runtime.LaunchedEffect
@@ -72,6 +73,9 @@ import top.yukonga.mishka.ui.component.AdaptiveTopAppBar
 import top.yukonga.mishka.ui.component.CardSegment
 import top.yukonga.mishka.ui.component.ListPopupDefaults.MenuPositionProvider
 import top.yukonga.mishka.ui.component.blur.BlurredBar
+import top.yukonga.mishka.ui.component.blur.CardGlassBackground
+import top.yukonga.mishka.ui.component.blur.LocalCardBackdrop
+import top.yukonga.mishka.ui.component.blur.LocalCardBackgroundImage
 import top.yukonga.mishka.ui.component.blur.rememberBlurBackdrop
 import top.yukonga.mishka.ui.platform.IconLoader
 import top.yukonga.mishka.ui.theme.StatusColors
@@ -201,278 +205,293 @@ fun ProxyScreen(
     val rowsCache = remember(groups, sortOption) { HashMap<String, List<List<String>>>() }
 
     val backdrop = rememberBlurBackdrop()
+    val cardBackdrop = rememberBlurBackdrop()
+    // 设了壁纸时主页壁纸由 MainPage 的静态层统一绘制并记录，卡片改采样上层传入的 backdrop
+    val hasWallpaper = LocalCardBackgroundImage.current != null
+    val inheritedCardBackdrop = LocalCardBackdrop.current
+    val effectiveCardBackdrop = if (hasWallpaper) inheritedCardBackdrop else cardBackdrop
     val blurActive = backdrop != null
     val barColor = if (blurActive) Color.Transparent else MiuixTheme.colorScheme.surface
 
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            BlurredBar(backdrop = backdrop, blurActive = blurActive) {
-                AdaptiveTopAppBar(
-                    title = stringResource(R.string.proxy_title),
-                    color = barColor,
-                    scrollBehavior = scrollBehavior,
-                    actions = {
-                        if (groups.isNotEmpty()) {
-                            Box {
-                                IconButton(
-                                    onClick = { showSortPopup.value = true },
-                                    holdDownState = showSortPopup.value,
-                                ) {
-                                    Icon(
-                                        imageVector = MiuixIcons.Sort,
-                                        contentDescription = stringResource(R.string.proxy_sort_title),
-                                        tint = MiuixTheme.colorScheme.onSurface,
-                                    )
-                                }
-
-                                WindowListPopup(
-                                    show = showSortPopup.value,
-                                    popupPositionProvider = MenuPositionProvider,
-                                    alignment = PopupPositionProvider.Align.TopEnd,
-                                    onDismissRequest = { showSortPopup.value = false },
-                                ) {
-                                    ListPopupColumn {
-                                        val sortResIds = listOf(
-                                            R.string.proxy_sort_default,
-                                            R.string.proxy_sort_name,
-                                            R.string.proxy_sort_delay,
+    CompositionLocalProvider(LocalCardBackdrop provides effectiveCardBackdrop) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            modifier = modifier,
+            topBar = {
+                BlurredBar(backdrop = backdrop, blurActive = blurActive) {
+                    AdaptiveTopAppBar(
+                        title = stringResource(R.string.proxy_title),
+                        color = barColor,
+                        scrollBehavior = scrollBehavior,
+                        actions = {
+                            if (groups.isNotEmpty()) {
+                                Box {
+                                    IconButton(
+                                        onClick = { showSortPopup.value = true },
+                                        holdDownState = showSortPopup.value,
+                                    ) {
+                                        Icon(
+                                            imageVector = MiuixIcons.Sort,
+                                            contentDescription = stringResource(R.string.proxy_sort_title),
+                                            tint = MiuixTheme.colorScheme.onSurface,
                                         )
-                                        val currentKey = sortOption / 2
-                                        val isReverse = sortOption % 2 != 0
-                                        val groupSize = sortResIds.size + 1
+                                    }
 
-                                        sortResIds.forEachIndexed { index, resId ->
+                                    WindowListPopup(
+                                        show = showSortPopup.value,
+                                        popupPositionProvider = MenuPositionProvider,
+                                        alignment = PopupPositionProvider.Align.TopEnd,
+                                        onDismissRequest = { showSortPopup.value = false },
+                                    ) {
+                                        ListPopupColumn {
+                                            val sortResIds = listOf(
+                                                R.string.proxy_sort_default,
+                                                R.string.proxy_sort_name,
+                                                R.string.proxy_sort_delay,
+                                            )
+                                            val currentKey = sortOption / 2
+                                            val isReverse = sortOption % 2 != 0
+                                            val groupSize = sortResIds.size + 1
+
+                                            sortResIds.forEachIndexed { index, resId ->
+                                                DropdownImpl(
+                                                    text = stringResource(resId),
+                                                    optionSize = groupSize,
+                                                    isSelected = currentKey == index,
+                                                    index = index,
+                                                    onSelectedIndexChange = {
+                                                        viewModel?.updateSortOption(
+                                                            index * 2 + if (isReverse) 1 else 0
+                                                        )
+                                                        showSortPopup.value = false
+                                                    },
+                                                )
+                                            }
+                                            HorizontalDivider(
+                                                modifier = Modifier
+                                                    .padding(horizontal = 20.dp, vertical = 4.dp),
+                                                thickness = 1.5.dp,
+                                            )
                                             DropdownImpl(
-                                                text = stringResource(resId),
+                                                text = stringResource(R.string.proxy_sort_reverse),
                                                 optionSize = groupSize,
-                                                isSelected = currentKey == index,
-                                                index = index,
+                                                isSelected = isReverse,
+                                                index = sortResIds.size,
                                                 onSelectedIndexChange = {
                                                     viewModel?.updateSortOption(
-                                                        index * 2 + if (isReverse) 1 else 0
+                                                        currentKey * 2 + if (!isReverse) 1 else 0
                                                     )
                                                     showSortPopup.value = false
                                                 },
                                             )
                                         }
-                                        HorizontalDivider(
-                                            modifier = Modifier
-                                                .padding(horizontal = 20.dp, vertical = 4.dp),
-                                            thickness = 1.5.dp,
+                                    }
+                                }
+
+                                Box {
+                                    IconButton(
+                                        onClick = { showPopup.value = true },
+                                        holdDownState = showPopup.value,
+                                    ) {
+                                        Icon(
+                                            imageVector = MiuixIcons.MoreCircle,
+                                            contentDescription = stringResource(R.string.common_more),
+                                            tint = MiuixTheme.colorScheme.onSurface,
                                         )
-                                        DropdownImpl(
-                                            text = stringResource(R.string.proxy_sort_reverse),
-                                            optionSize = groupSize,
-                                            isSelected = isReverse,
-                                            index = sortResIds.size,
-                                            onSelectedIndexChange = {
-                                                viewModel?.updateSortOption(
-                                                    currentKey * 2 + if (!isReverse) 1 else 0
-                                                )
-                                                showSortPopup.value = false
-                                            },
-                                        )
+                                    }
+
+                                    WindowListPopup(
+                                        show = showPopup.value,
+                                        popupPositionProvider = MenuPositionProvider,
+                                        alignment = PopupPositionProvider.Align.TopEnd,
+                                        onDismissRequest = { showPopup.value = false },
+                                    ) {
+                                        ListPopupColumn {
+                                            DropdownImpl(
+                                                text = stringResource(R.string.proxy_single_column),
+                                                optionSize = 3,
+                                                isSelected = singleColumn,
+                                                index = 0,
+                                                onSelectedIndexChange = {
+                                                    viewModel?.updateSingleColumn(!singleColumn)
+                                                    showPopup.value = false
+                                                },
+                                            )
+                                            DropdownImpl(
+                                                text = stringResource(R.string.proxy_show_global_group),
+                                                optionSize = 3,
+                                                // 勾选态跟实际结果走，不是偏好值
+                                                isSelected = showGlobalGroup || globalModeActive,
+                                                index = 1,
+                                                enabled = !globalModeActive,
+                                                onSelectedIndexChange = {
+                                                    viewModel?.updateShowGlobalGroup(!showGlobalGroup)
+                                                    showPopup.value = false
+                                                },
+                                            )
+                                            DropdownImpl(
+                                                text = stringResource(R.string.proxy_refresh_icon),
+                                                optionSize = 3,
+                                                isSelected = false,
+                                                index = 2,
+                                                onSelectedIndexChange = {
+                                                    coroutineScope.launch { IconLoader.clear() }
+                                                    iconCacheVersion++
+                                                    showPopup.value = false
+                                                },
+                                            )
+                                        }
                                     }
                                 }
                             }
-
-                            Box {
-                                IconButton(
-                                    onClick = { showPopup.value = true },
-                                    holdDownState = showPopup.value,
-                                ) {
-                                    Icon(
-                                        imageVector = MiuixIcons.MoreCircle,
-                                        contentDescription = stringResource(R.string.common_more),
-                                        tint = MiuixTheme.colorScheme.onSurface,
-                                    )
-                                }
-
-                                WindowListPopup(
-                                    show = showPopup.value,
-                                    popupPositionProvider = MenuPositionProvider,
-                                    alignment = PopupPositionProvider.Align.TopEnd,
-                                    onDismissRequest = { showPopup.value = false },
-                                ) {
-                                    ListPopupColumn {
-                                        DropdownImpl(
-                                            text = stringResource(R.string.proxy_single_column),
-                                            optionSize = 3,
-                                            isSelected = singleColumn,
-                                            index = 0,
-                                            onSelectedIndexChange = {
-                                                viewModel?.updateSingleColumn(!singleColumn)
-                                                showPopup.value = false
-                                            },
-                                        )
-                                        DropdownImpl(
-                                            text = stringResource(R.string.proxy_show_global_group),
-                                            optionSize = 3,
-                                            // 勾选态跟实际结果走，不是偏好值
-                                            isSelected = showGlobalGroup || globalModeActive,
-                                            index = 1,
-                                            enabled = !globalModeActive,
-                                            onSelectedIndexChange = {
-                                                viewModel?.updateShowGlobalGroup(!showGlobalGroup)
-                                                showPopup.value = false
-                                            },
-                                        )
-                                        DropdownImpl(
-                                            text = stringResource(R.string.proxy_refresh_icon),
-                                            optionSize = 3,
-                                            isSelected = false,
-                                            index = 2,
-                                            onSelectedIndexChange = {
-                                                coroutineScope.launch { IconLoader.clear() }
-                                                iconCacheVersion++
-                                                showPopup.value = false
-                                            },
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    },
-                )
-            }
-        },
-    ) { innerPadding ->
-        WideContentBox(modifier = if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier) { sidePadding ->
-            if (groups.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = innerPadding.calculateTopPadding(), bottom = bottomPadding),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    Text(
-                        text = stringResource(R.string.proxy_no_groups),
-                        fontSize = 16.sp,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
-                    Text(
-                        text = stringResource(R.string.proxy_start_first),
-                        modifier = Modifier.padding(top = 6.dp),
-                        fontSize = 14.sp,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        },
                     )
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .scrollEndHaptic()
-                        .overScrollVertical()
-                        .nestedScroll(scrollBehavior.nestedScrollConnection),
-                    contentPadding = PaddingValues(
-                        top = innerPadding.calculateTopPadding(),
-                        bottom = bottomPadding,
-                        start = sidePadding,
-                        end = sidePadding,
-                    ),
-                ) {
-                    if (modeHintRes != null) {
-                        item(key = "mode_hint", contentType = "proxy_mode_hint") {
-                            CardSegment(
-                                isFirst = true,
-                                isLast = true,
-                                modifier = Modifier.animateItem(placementSpec = null),
-                                outerTopPadding = 12.dp,
-                                insidePadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                            ) {
-                                Text(
-                                    text = stringResource(modeHintRes),
-                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                    fontSize = 13.sp,
-                                )
-                            }
-                        }
-                    }
-
-                    // 每组展平为「组头段 + 每行节点段」独立 lazy item；展开时只组合可见节点行，避免一次性组合整组造成卡顿
-                    groups.forEach { group ->
-                        val isExpanded = group.name in expandedGroups
-                        // 收起动画未跑完的组仍产出行 item，靠行高收缩表达收起
-                        val rowsPresent = isExpanded || group.name in retainedGroups
-                        // 恒按 2 个分行：行数与 key 不随单列开关变化，morph 全在行内部
-                        val rows = if (rowsPresent) {
-                            rowsCache.getOrPut(group.name) {
-                                sortNodes(group.all, group.delays, sortOption).chunked(2)
-                            }
-                        } else {
-                            emptyList()
-                        }
-
-                        item(key = "group:${group.name}", contentType = "proxy_group_header") {
-                            // 按目标态动画才能与行高收缩同步；跟 rowsPresent 会滞后整段收起时长
-                            val headerBottomCorner by animateDpAsState(
-                                targetValue = if (isExpanded) 0.dp else 16.dp,
-                                animationSpec = tween(300),
-                                label = "groupHeaderBottomCorner",
+            },
+        ) { innerPadding ->
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
+            ) {
+                if (!hasWallpaper) CardGlassBackground(cardBackdrop)
+                WideContentBox { sidePadding ->
+                    if (groups.isEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(top = innerPadding.calculateTopPadding(), bottom = bottomPadding),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.proxy_no_groups),
+                                fontSize = 16.sp,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             )
-                            CardSegment(
-                                isFirst = true,
-                                isLast = !isExpanded,
-                                modifier = Modifier.animateItem(placementSpec = null),
-                                bottomCornerRadius = headerBottomCorner,
-                                outerTopPadding = 12.dp,
-                            ) {
-                                ProxyGroupHeader(
-                                    group = group,
-                                    isExpanded = isExpanded,
-                                    iconCacheVersion = iconCacheVersion,
-                                    isTesting = group.name in uiState.testingGroups,
-                                    onTestDelay = { viewModel?.testGroupDelay(group.name) },
-                                    onUnfix = { viewModel?.unfixProxy(group.name) },
-                                    onToggle = { toggleGroup(group.name) },
-                                )
-                            }
+                            Text(
+                                text = stringResource(R.string.proxy_start_first),
+                                modifier = Modifier.padding(top = 6.dp),
+                                fontSize = 14.sp,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            )
                         }
-
-                        if (rows.isNotEmpty()) {
-                            val lastRowIndex = rows.lastIndex
-                            val groupExpandProgress = expandProgress[group.name]
-                            rows.forEachIndexed { rowIndex, row ->
-                                item(
-                                    key = "nodes:${group.name}:$rowIndex",
-                                    contentType = "proxy_node_row",
-                                ) {
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .scrollEndHaptic()
+                                .overScrollVertical()
+                                .nestedScroll(scrollBehavior.nestedScrollConnection),
+                            contentPadding = PaddingValues(
+                                top = innerPadding.calculateTopPadding(),
+                                bottom = bottomPadding,
+                                start = sidePadding,
+                                end = sidePadding,
+                            ),
+                        ) {
+                            if (modeHintRes != null) {
+                                item(key = "mode_hint", contentType = "proxy_mode_hint") {
                                     CardSegment(
-                                        isFirst = false,
-                                        isLast = rowIndex == lastRowIndex,
-                                        modifier = Modifier
-                                            .animateItem(placementSpec = null)
-                                            .clipToBounds(),
-                                        // 底距交给行内 Layout 一起收缩，否则收完残留一条 12dp 底色
-                                        insidePadding = PaddingValues(
-                                            start = 12.dp,
-                                            end = 12.dp,
-                                        ),
+                                        isFirst = true,
+                                        isLast = true,
+                                        modifier = Modifier.animateItem(placementSpec = null),
+                                        outerTopPadding = 12.dp,
+                                        insidePadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                                     ) {
-                                        ProxyNodeRow(
-                                            row = row,
-                                            group = group,
-                                            singleColumnProgress = singleColumnProgress,
-                                            expandProgress = groupExpandProgress,
-                                            rowIndex = rowIndex,
-                                            testingNodes = uiState.testingNodes,
-                                            onTestNodeDelay = { nodeName ->
-                                                viewModel?.testNodeDelay(nodeName)
-                                            },
-                                            onSelect = { proxyName ->
-                                                viewModel?.selectProxy(group.name, proxyName)
-                                            },
+                                        Text(
+                                            text = stringResource(modeHintRes),
+                                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                            fontSize = 13.sp,
                                         )
                                     }
                                 }
                             }
-                        }
-                    }
 
-                    item(key = "bottom_spacer") {
-                        Spacer(Modifier.padding(bottom = 12.dp))
+                            // 每组展平为「组头段 + 每行节点段」独立 lazy item；展开时只组合可见节点行，避免一次性组合整组造成卡顿
+                            groups.forEach { group ->
+                                val isExpanded = group.name in expandedGroups
+                                // 收起动画未跑完的组仍产出行 item，靠行高收缩表达收起
+                                val rowsPresent = isExpanded || group.name in retainedGroups
+                                // 恒按 2 个分行：行数与 key 不随单列开关变化，morph 全在行内部
+                                val rows = if (rowsPresent) {
+                                    rowsCache.getOrPut(group.name) {
+                                        sortNodes(group.all, group.delays, sortOption).chunked(2)
+                                    }
+                                } else {
+                                    emptyList()
+                                }
+
+                                item(key = "group:${group.name}", contentType = "proxy_group_header") {
+                                    // 按目标态动画才能与行高收缩同步；跟 rowsPresent 会滞后整段收起时长
+                                    val headerBottomCorner by animateDpAsState(
+                                        targetValue = if (isExpanded) 0.dp else 16.dp,
+                                        animationSpec = tween(300),
+                                        label = "groupHeaderBottomCorner",
+                                    )
+                                    CardSegment(
+                                        isFirst = true,
+                                        isLast = !isExpanded,
+                                        modifier = Modifier.animateItem(placementSpec = null),
+                                        bottomCornerRadius = headerBottomCorner,
+                                        outerTopPadding = 12.dp,
+                                    ) {
+                                        ProxyGroupHeader(
+                                            group = group,
+                                            isExpanded = isExpanded,
+                                            iconCacheVersion = iconCacheVersion,
+                                            isTesting = group.name in uiState.testingGroups,
+                                            onTestDelay = { viewModel?.testGroupDelay(group.name) },
+                                            onUnfix = { viewModel?.unfixProxy(group.name) },
+                                            onToggle = { toggleGroup(group.name) },
+                                        )
+                                    }
+                                }
+
+                                if (rows.isNotEmpty()) {
+                                    val lastRowIndex = rows.lastIndex
+                                    val groupExpandProgress = expandProgress[group.name]
+                                    rows.forEachIndexed { rowIndex, row ->
+                                        item(
+                                            key = "nodes:${group.name}:$rowIndex",
+                                            contentType = "proxy_node_row",
+                                        ) {
+                                            CardSegment(
+                                                isFirst = false,
+                                                isLast = rowIndex == lastRowIndex,
+                                                modifier = Modifier
+                                                    .animateItem(placementSpec = null)
+                                                    .clipToBounds(),
+                                                // 底距交给行内 Layout 一起收缩，否则收完残留一条 12dp 底色
+                                                insidePadding = PaddingValues(
+                                                    start = 12.dp,
+                                                    end = 12.dp,
+                                                ),
+                                            ) {
+                                                ProxyNodeRow(
+                                                    row = row,
+                                                    group = group,
+                                                    singleColumnProgress = singleColumnProgress,
+                                                    expandProgress = groupExpandProgress,
+                                                    rowIndex = rowIndex,
+                                                    testingNodes = uiState.testingNodes,
+                                                    onTestNodeDelay = { nodeName ->
+                                                        viewModel?.testNodeDelay(nodeName)
+                                                    },
+                                                    onSelect = { proxyName ->
+                                                        viewModel?.selectProxy(group.name, proxyName)
+                                                    },
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            item(key = "bottom_spacer") {
+                                Spacer(Modifier.padding(bottom = 12.dp))
+                            }
+                        }
                     }
                 }
             }

@@ -1,5 +1,9 @@
 package top.yukonga.mishka.ui.screen.home
 
+import top.yukonga.mishka.ui.component.blur.cardGlassBackdrop
+import top.yukonga.mishka.ui.component.blur.cardGlassSurface
+import androidx.compose.ui.graphics.Color
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,12 +44,15 @@ fun LazyListScope.latencySection(
         LatencyHeader(state, onTestLatency)
     }
     item(key = "latency") {
+        val glassBackdrop = cardGlassBackdrop()
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp)
-                .padding(bottom = 6.dp),
+                .padding(bottom = 6.dp)
+                .then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp) else Modifier),
             insideMargin = PaddingValues(16.dp),
+            colors = if (glassBackdrop != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

@@ -69,6 +69,23 @@ class FilePicker(private val activity: ComponentActivity) {
         pickLauncher.launch(arrayOf("*/*"))
     }
 
+    // === 相册图片（从图片识别 QR 码导入）===
+
+    private var imageCallback: ((Uri?) -> Unit)? = null
+    private val imageLauncher = activity.registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        val cb = imageCallback
+        imageCallback = null
+        cb?.invoke(uri)
+    }
+
+    /** 经 SAF 选择一张图片；回调 null 表示用户取消。 */
+    fun pickImage(onResult: (Uri?) -> Unit) {
+        imageCallback = onResult
+        imageLauncher.launch(arrayOf("image/*"))
+    }
+
     private fun handleResult(result: ActivityResult) {
         val data = result.data
         if (result.resultCode != Activity.RESULT_OK || data?.data == null) {

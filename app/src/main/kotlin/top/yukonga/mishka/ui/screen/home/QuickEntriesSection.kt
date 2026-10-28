@@ -1,5 +1,9 @@
 package top.yukonga.mishka.ui.screen.home
 
+import top.yukonga.mishka.ui.component.blur.cardGlassBackdrop
+import top.yukonga.mishka.ui.component.blur.cardGlassSurface
+import androidx.compose.ui.graphics.Color
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -87,9 +91,11 @@ private fun QuickEntryCard(
     isRunning: Boolean,
     onClick: () -> Unit,
 ) {
+    val glassBackdrop = cardGlassBackdrop()
     Card(
-        modifier = modifier,
+        modifier = modifier.then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp) else Modifier),
         insideMargin = PaddingValues(16.dp),
+        colors = if (glassBackdrop != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
         onClick = onClick,
         showIndication = isRunning,
         pressFeedbackType = if (isRunning) PressFeedbackType.Sink else PressFeedbackType.None,
