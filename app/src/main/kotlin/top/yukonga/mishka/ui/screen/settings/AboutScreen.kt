@@ -291,7 +291,7 @@ private fun AboutContent(
                             )
                         } else Modifier
                     ),
-                text = "Mishka",
+                text = "Sakura Clash",
                 color = colorScheme.onBackground,
                 fontWeight = FontWeight.Bold,
                 fontSize = 35.sp,

@@ -1,7 +1,7 @@
 <resources>
     <!-- Notification Channels -->
     <string name="channel_vpn_name">VPN 服务状态</string>
-    <string name="channel_vpn_desc">Mishka 代理服务运行状态</string>
+    <string name="channel_vpn_desc">Sakura Clash 代理服务运行状态</string>
     <string name="channel_profile_status_name">配置更新进度</string>
     <string name="channel_profile_status_desc">配置下载和验证进度</string>
     <string name="channel_profile_result_name">配置更新结果</string>
@@ -13,7 +13,7 @@
 
     <!-- VPN Notifications -->
     <string name="notification_loading">正在启动…</string>
-    <string name="notification_running_title">Mishka 运行中</string>
+    <string name="notification_running_title">Sakura Clash 运行中</string>
     <string name="notification_running_content">模式: %1$s</string>
     <string name="notification_wifi_policy_title">Wi-Fi 自动切换</string>
     <string name="notification_wifi_policy_service_content">等待 Wi-Fi 变化</string>
@@ -57,7 +57,7 @@
     <!-- Service Errors -->
     <string name="error_vpn_failed">VPN 建立失败: %1$s</string>
     <string name="error_vpn_denied">VPN 权限被拒绝</string>
-    <string name="error_vpn_no_selected_apps">请至少选择一个已安装且不是 Mishka 的应用，再启动 VPN</string>
+    <string name="error_vpn_no_selected_apps">请至少选择一个已安装且不是 Sakura Clash 的应用，再启动 VPN</string>
     <string name="error_vpn_not_ready">VPN 启动未完成，或控制 API 不可用</string>
     <string name="error_start_failed">启动失败</string>
     <string name="error_root_failed">无法获取 Root 权限</string>

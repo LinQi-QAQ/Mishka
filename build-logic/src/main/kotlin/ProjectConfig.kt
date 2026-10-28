@@ -1,7 +1,7 @@
 import org.gradle.api.Project
 
 object ProjectConfig {
-    const val APP_NAME = "Mishka"
+    const val APP_NAME = "Sakura Clash"
     const val PACKAGE_NAME = "top.yukonga.mishka"
     const val VERSION_NAME = "1.0.3"
 

@@ -383,7 +383,7 @@ fun SettingsScreen(
                         add(CardItem("about") {
                             ArrowPreference(
                                 title = stringResource(R.string.settings_about),
-                                summary = "Mishka v${BuildConfig.VERSION_NAME}",
+                                summary = "Sakura Clash v${BuildConfig.VERSION_NAME}",
                                 onClick = onNavigateAbout,
                             )
                         })

@@ -1,57 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- 左竖线 -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M35,40h4v28h-4z" />
+    <!-- 五瓣樱花：单瓣路径绕中心 (54,54) 每 72° 旋转一份 -->
 
-    <!-- 左上→谷底 斜线 -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M37,40L54,56"
-        android:strokeWidth="4"
-        android:strokeColor="#FFFFFF"
-        android:strokeLineCap="round" />
+    <!-- 花瓣 1 -->
+    <group android:pivotX="54" android:pivotY="54" android:rotation="0">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M54,54 C45,48 42,36 48,28 C51,24 57,24 60,28 C66,36 63,48 54,54 Z" />
+    </group>
 
-    <!-- 谷底→右上 斜线 -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,56L71,40"
-        android:strokeWidth="4"
-        android:strokeColor="#FFFFFF"
-        android:strokeLineCap="round" />
+    <!-- 花瓣 2 -->
+    <group android:pivotX="54" android:pivotY="54" android:rotation="72">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M54,54 C45,48 42,36 48,28 C51,24 57,24 60,28 C66,36 63,48 54,54 Z" />
+    </group>
 
-    <!-- 右竖线 -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M69,40h4v28h-4z" />
+    <!-- 花瓣 3 -->
+    <group android:pivotX="54" android:pivotY="54" android:rotation="144">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M54,54 C45,48 42,36 48,28 C51,24 57,24 60,28 C66,36 63,48 54,54 Z" />
+    </group>
 
-    <!-- 节点：左上 -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M37,40m-4.5,0a4.5,4.5 0,1 1,9 0a4.5,4.5 0,1 1,-9 0" />
+    <!-- 花瓣 4 -->
+    <group android:pivotX="54" android:pivotY="54" android:rotation="216">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M54,54 C45,48 42,36 48,28 C51,24 57,24 60,28 C66,36 63,48 54,54 Z" />
+    </group>
 
-    <!-- 节点：左下 -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M37,68m-4.5,0a4.5,4.5 0,1 1,9 0a4.5,4.5 0,1 1,-9 0" />
+    <!-- 花瓣 5 -->
+    <group android:pivotX="54" android:pivotY="54" android:rotation="288">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M54,54 C45,48 42,36 48,28 C51,24 57,24 60,28 C66,36 63,48 54,54 Z" />
+    </group>
 
-    <!-- 节点：谷底 -->
+    <!-- 花心 -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,56m-4.5,0a4.5,4.5 0,1 1,9 0a4.5,4.5 0,1 1,-9 0" />
+        android:fillColor="#D6336C"
+        android:pathData="M54,54m-4.5,0a4.5,4.5 0,1 1,9 0a4.5,4.5 0,1 1,-9 0" />
 
-    <!-- 节点：右上 -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M71,40m-4.5,0a4.5,4.5 0,1 1,9 0a4.5,4.5 0,1 1,-9 0" />
+    <!-- 花蕊：五条细线自花心向外，落在花瓣中轴 -->
+    <group android:pivotX="54" android:pivotY="54" android:rotation="0">
+        <path
+            android:strokeColor="#F48FB1"
+            android:strokeWidth="1.2"
+            android:strokeLineCap="round"
+            android:pathData="M54,50 L54,33" />
+    </group>
+    <group android:pivotX="54" android:pivotY="54" android:rotation="72">
+        <path
+            android:strokeColor="#F48FB1"
+            android:strokeWidth="1.2"
+            android:strokeLineCap="round"
+            android:pathData="M54,50 L54,33" />
+    </group>
+    <group android:pivotX="54" android:pivotY="54" android:rotation="144">
+        <path
+            android:strokeColor="#F48FB1"
+            android:strokeWidth="1.2"
+            android:strokeLineCap="round"
+            android:pathData="M54,50 L54,33" />
+    </group>
+    <group android:pivotX="54" android:pivotY="54" android:rotation="216">
+        <path
+            android:strokeColor="#F48FB1"
+            android:strokeWidth="1.2"
+            android:strokeLineCap="round"
+            android:pathData="M54,50 L54,33" />
+    </group>
+    <group android:pivotX="54" android:pivotY="54" android:rotation="288">
+        <path
+            android:strokeColor="#F48FB1"
+            android:strokeWidth="1.2"
+            android:strokeLineCap="round"
+            android:pathData="M54,50 L54,33" />
+    </group>
 
-    <!-- 节点：右下 -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M71,68m-4.5,0a4.5,4.5 0,1 1,9 0a4.5,4.5 0,1 1,-9 0" />
 </vector>

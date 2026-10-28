@@ -1,9 +1,9 @@
 <resources>
-    <string name="app_name" translatable="false">Mishka</string>
+    <string name="app_name" translatable="false">Sakura Clash</string>
 
     <!-- Notification Channels -->
     <string name="channel_vpn_name">VPN Service Status</string>
-    <string name="channel_vpn_desc">Mishka proxy service status</string>
+    <string name="channel_vpn_desc">Sakura Clash proxy service status</string>
     <string name="channel_profile_status_name">Config Update Progress</string>
     <string name="channel_profile_status_desc">Config download and validation progress</string>
     <string name="channel_profile_result_name">Config Update Result</string>
@@ -15,7 +15,7 @@
 
     <!-- VPN Notifications -->
     <string name="notification_loading">Starting…</string>
-    <string name="notification_running_title">Mishka Running</string>
+    <string name="notification_running_title">Sakura Clash Running</string>
     <string name="notification_running_content">Mode: %1$s</string>
     <string name="notification_wifi_policy_title">Wi-Fi Auto Switch</string>
     <string name="notification_wifi_policy_service_content">Waiting for Wi-Fi changes</string>
@@ -59,7 +59,7 @@
     <!-- Service Errors -->
     <string name="error_vpn_failed">VPN establishment failed: %1$s</string>
     <string name="error_vpn_denied">VPN permission denied</string>
-    <string name="error_vpn_no_selected_apps">Select at least one installed app other than Mishka before starting VPN.</string>
+    <string name="error_vpn_no_selected_apps">Select at least one installed app other than Sakura Clash before starting VPN.</string>
     <string name="error_vpn_not_ready">VPN startup did not complete or its control API is unavailable</string>
     <string name="error_start_failed">Start failed</string>
     <string name="error_root_failed">Cannot obtain Root permission</string>
