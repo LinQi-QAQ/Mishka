@@ -575,6 +575,10 @@
 
     <!-- About -->
     <string name="about_title">О приложении</string>
+    <string name="about_repositories">Репозитории</string>
+    <string name="about_repo_fork">Этот проект</string>
+    <string name="about_repo_upstream">Оригинальный Mishka</string>
+    <string name="about_repo_credits">Проекты участников</string>
 
     <!-- FormatUtils -->
 

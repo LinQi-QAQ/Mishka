@@ -667,6 +667,10 @@
     <string name="about_title">About</string>
     <string name="about_edition_label" translatable="false">For LinQi</string>
     <string name="about_description">A Clash proxy client based on Mishka</string>
+    <string name="about_repositories">Repositories</string>
+    <string name="about_repo_fork">This project</string>
+    <string name="about_repo_upstream">Upstream Mishka</string>
+    <string name="about_repo_credits">Contributors</string>
 
     <!-- FormatUtils -->
 

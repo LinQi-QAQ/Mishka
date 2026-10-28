@@ -664,6 +664,10 @@
     <!-- About -->
     <string name="about_title">關於</string>
     <string name="about_description">基於 Mishka 開發的 Clash 代理客戶端</string>
+    <string name="about_repositories">倉庫位址</string>
+    <string name="about_repo_fork">本專案</string>
+    <string name="about_repo_upstream">上游 Mishka</string>
+    <string name="about_repo_credits">貢獻者專案</string>
 
     <!-- FormatUtils -->
 

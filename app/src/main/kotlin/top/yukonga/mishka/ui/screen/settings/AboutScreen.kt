@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
@@ -37,6 +38,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
@@ -48,10 +50,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import top.yukonga.mishka.BuildConfig
 import top.yukonga.mishka.R
+import top.yukonga.mishka.ui.component.CardItem
 import top.yukonga.mishka.ui.component.blur.BlurredBar
 import top.yukonga.mishka.ui.component.blur.rememberBlurBackdrop
 import top.yukonga.mishka.ui.component.blur.rememberBlurEnabled
 import top.yukonga.mishka.ui.component.effect.BgEffectBackground
+import top.yukonga.mishka.ui.component.groupedCardItems
 import top.yukonga.mishka.ui.theme.LocalAppDarkMode
 import top.yukonga.mishka.ui.util.horizontalCutoutPadding
 import top.yukonga.miuix.kmp.basic.Icon
@@ -59,6 +63,7 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
+import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
@@ -70,6 +75,7 @@ import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
+import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
@@ -152,6 +158,29 @@ fun AboutScreen(
 }
 
 @Composable
+private fun repositoryLinks(): List<RepositoryLink> = listOf(
+    RepositoryLink(stringResource(R.string.about_repo_fork), "https://github.com/LinQi-QAQ/Mishka"),
+    RepositoryLink(stringResource(R.string.about_repo_upstream), "https://github.com/YuKongA/Mishka"),
+    RepositoryLink("mihomo", "https://github.com/MetaCubeX/mihomo"),
+    RepositoryLink("miuix", "https://github.com/miuix-kotlin-multiplatform/miuix"),
+    RepositoryLink("scripta", "https://github.com/YuKongA/scripta"),
+    RepositoryLink("AndroidHiddenApiBypass", "https://github.com/LSPosed/AndroidHiddenApiBypass"),
+    RepositoryLink("Quickie", "https://github.com/G00fY2/quickie"),
+)
+
+private data class RepositoryLink(val label: String, val url: String)
+
+/**
+ * 用系统浏览器打开仓库地址。加 `FLAG_ACTIVITY_NEW_TASK` 是因为调用点可能不在 Activity 栈顶；
+ * 没有浏览器时静默忽略，不让关于页崩溃。
+ */
+private fun openRepository(context: android.content.Context, url: String) {
+    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+        .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    runCatching { context.startActivity(intent) }
+}
+
+@Composable
 private fun AboutContent(
     innerPadding: PaddingValues,
     scrollBehavior: ScrollBehavior,
@@ -160,6 +189,9 @@ private fun AboutContent(
 ) {
     val layoutDirection = LocalLayoutDirection.current
     val density = LocalDensity.current
+    val context = LocalContext.current
+    // 组合期取好文案：groupedCardItems 的 items lambda 不是 @Composable 上下文
+    val repoLinks = repositoryLinks()
 
     val backdrop = rememberLayerBackdrop()
 
@@ -325,6 +357,24 @@ private fun AboutContent(
                 )
             }
 
+            item(key = "reposTitle") {
+                SmallTitle(text = stringResource(R.string.about_repositories))
+            }
+            groupedCardItems(
+                keyPrefix = "about_repos",
+                items = repoLinks.map { link ->
+                    CardItem(link.url) {
+                        ArrowPreference(
+                            title = link.label,
+                            summary = link.url.substringAfter("https://").removeSuffix("/"),
+                            onClick = { openRepository(context, link.url) },
+                        )
+                    }
+                },
+            )
+            item(key = "reposBottomSpacer") {
+                Box(Modifier.height(24.dp).navigationBarsPadding())
+            }
         }
     }
 }
