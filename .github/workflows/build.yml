@@ -70,28 +70,24 @@ jobs:
         with:
           name: Mishka-debug-arm64-v8a
           path: app/build/outputs/apk/*/debug/*-arm64-v8a-*.apk
-          archive: false
 
       - name: Upload Debug APK (armeabi-v7a)
         uses: actions/upload-artifact@v7
         with:
           name: Mishka-debug-armeabi-v7a
           path: app/build/outputs/apk/*/debug/*-armeabi-v7a-*.apk
-          archive: false
 
       - name: Upload Debug APK (x86_64)
         uses: actions/upload-artifact@v7
         with:
           name: Mishka-debug-x86_64
           path: app/build/outputs/apk/*/debug/*-x86_64-*.apk
-          archive: false
 
       - name: Upload Debug APK (x86)
         uses: actions/upload-artifact@v7
         with:
           name: Mishka-debug-x86
           path: app/build/outputs/apk/*/debug/*-x86-*.apk
-          archive: false
 
       - name: Upload Release APK (arm64-v8a)
         if: env.HAS_SIGNING_KEY == 'true'
@@ -99,7 +95,6 @@ jobs:
         with:
           name: Mishka-release-arm64-v8a
           path: app/build/outputs/apk/*/release/*-arm64-v8a-*.apk
-          archive: false
 
       - name: Upload Release APK (armeabi-v7a)
         if: env.HAS_SIGNING_KEY == 'true'
@@ -107,7 +102,6 @@ jobs:
         with:
           name: Mishka-release-armeabi-v7a
           path: app/build/outputs/apk/*/release/*-armeabi-v7a-*.apk
-          archive: false
 
       - name: Upload Release APK (x86_64)
         if: env.HAS_SIGNING_KEY == 'true'
@@ -115,7 +109,6 @@ jobs:
         with:
           name: Mishka-release-x86_64
           path: app/build/outputs/apk/*/release/*-x86_64-*.apk
-          archive: false
 
       - name: Upload Release APK (x86)
         if: env.HAS_SIGNING_KEY == 'true'
@@ -123,4 +116,3 @@ jobs:
         with:
           name: Mishka-release-x86
           path: app/build/outputs/apk/*/release/*-x86-*.apk
-          archive: false
