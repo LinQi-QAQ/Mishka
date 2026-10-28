@@ -52,6 +52,18 @@ val keystoreFile = keystorePath?.let { path ->
     file(path).takeIf { it.exists() } ?: project.rootProject.file(path).takeIf { it.exists() }
 }
 
+// beta 签名：密钥信息放在仓库外的 beta.properties（不进仓库），
+// 每台机器自建 keystore 后填 beta.keystore.* 四项即可；同签名 beta 包可互相覆盖更新
+val betaProps = Properties().apply {
+    val propsFile = rootProject.file("beta.properties")
+    if (propsFile.exists()) propsFile.inputStream().use { load(it) }
+}
+val betaKeystoreFile = file(betaProps.getProperty("beta.keystore.path", "beta.keystore"))
+val betaKeystorePassword = betaProps.getProperty("beta.keystore.storePassword", "")
+val betaKeystoreAlias = betaProps.getProperty("beta.keystore.keyAlias", "beta")
+val betaKeystoreKeyPassword = betaProps.getProperty("beta.keystore.keyPassword", "")
+val hasBetaProperties = rootProject.file("beta.properties").exists()
+
 @Suppress("UnstableApiUsage")
 android {
     if (keystoreFile != null) {
@@ -95,18 +107,12 @@ android {
         versionName = ProjectConfig.VERSION_NAME
         versionCode = gitVersionCode
     }
-    // beta 签名：密钥信息放在仓库外的 beta.properties（不进仓库），
-    // 每台机器自建 keystore 后填 beta.keystore.* 四项即可；同签名 beta 包可互相覆盖更新
-    val betaProps = java.util.Properties().apply {
-        val propsFile = rootProject.file("beta.properties")
-        if (propsFile.exists()) propsFile.inputStream().use { load(it) }
-    }
     signingConfigs {
         create("betaLocal") {
-            storeFile = file(betaProps.getProperty("beta.keystore.path", "beta.keystore"))
-            storePassword = betaProps.getProperty("beta.keystore.storePassword", "")
-            keyAlias = betaProps.getProperty("beta.keystore.keyAlias", "beta")
-            keyPassword = betaProps.getProperty("beta.keystore.keyPassword", "")
+            storeFile = betaKeystoreFile
+            storePassword = betaKeystorePassword
+            keyAlias = betaKeystoreAlias
+            keyPassword = betaKeystoreKeyPassword
         }
     }
     // 测试渠道：beta 改包名与稳定版共存，手机双开测试用
@@ -121,7 +127,7 @@ android {
             versionNameSuffix = "-beta"
             // 没有 beta.properties（例如 CI）时不绑 betaLocal 签名，debug/release 回退到默认签名配置，
             // 避免缺 keystore 导致整包构建失败；本地有 beta.properties 时仍用 beta 签名
-            if (rootProject.file("beta.properties").exists()) {
+            if (hasBetaProperties) {
                 signingConfig = signingConfigs.getByName("betaLocal")
             }
         }
@@ -246,6 +252,10 @@ tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.con
 
 val mihomoSubmoduleDir = rootProject.layout.projectDirectory.dir("mihomo")
 val mishkaCoreSourceDir = rootProject.layout.projectDirectory.dir("app/src/main/native/mishka_core")
+
+// mihomo 补丁文件与子模块目录（顶层求值，避免嵌套块里解析不到）
+val mihomoPatchFile = rootProject.layout.projectDirectory.file("patches/mihomo-tls-fragment.patch").asFile
+val mihomoPatchDir = mihomoSubmoduleDir.asFile
 val mihomoBuildTags = listOf("cmfa", "mishka", "with_gvisor")
 val mihomoVersion = providers.gradleProperty("mihomo.version").orElse("dev").get()
 val mihomoVersionPath = "github.com/metacubex/mihomo/constant.Version"
@@ -289,18 +299,13 @@ val applyMihomoPatches = tasks.register("applyMihomoPatches") {
     group = "mihomo"
     description = "Apply vendored mihomo patches if not already applied"
     doLast {
-        val patchFile = rootProject.layout.projectDirectory.file("patches/mihomo-tls-fragment.patch").asFile
-        val mihomoDir = mihomoSubmoduleDir.asFile
         fun gitApplyCheck(reverse: Boolean): Boolean {
-            val args = mutableListOf("apply", "--check")
-            if (reverse) args.add("--reverse")
-            args.add(patchFile.absolutePath)
-            val result = project.exec {
-                commandLine("git", *args.toTypedArray())
-                workingDir(mihomoDir)
-                isIgnoreExitValue = true
-            }
-            return result.exitValue == 0
+            val cmd = mutableListOf("git", "apply", "--check")
+            if (reverse) cmd.add("--reverse")
+            cmd.add(mihomoPatchFile.absolutePath)
+            val proc = ProcessBuilder(cmd).directory(mihomoPatchDir).redirectErrorStream(true).start()
+            proc.inputStream.readAllBytes()
+            return proc.waitFor() == 0
         }
         if (gitApplyCheck(true)) {
             logger.lifecycle("mihomo patch already applied, skipping")
@@ -308,9 +313,9 @@ val applyMihomoPatches = tasks.register("applyMihomoPatches") {
             if (!gitApplyCheck(false)) {
                 throw GradleException("mihomo patch does not apply cleanly; check patches/mihomo-tls-fragment.patch against the mihomo submodule")
             }
-            project.exec {
-                commandLine("git", "apply", patchFile.absolutePath)
-                workingDir(mihomoDir)
+            val proc = ProcessBuilder(listOf("git", "apply", mihomoPatchFile.absolutePath)).directory(mihomoPatchDir).inheritIO().start()
+            if (proc.waitFor() != 0) {
+                throw GradleException("git apply failed for patches/mihomo-tls-fragment.patch")
             }
             logger.lifecycle("mihomo patch applied")
         }
