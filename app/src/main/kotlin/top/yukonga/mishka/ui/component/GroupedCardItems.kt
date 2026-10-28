@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import top.yukonga.mishka.ui.component.blur.cardGlassBackdrop
+import top.yukonga.mishka.ui.component.blur.cardGlassSurface
 import top.yukonga.miuix.kmp.squircle.squircleSurface
 import top.yukonga.miuix.kmp.theme.LocalContentColor
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -44,7 +46,15 @@ fun CardSegment(
     insidePadding: PaddingValues = PaddingValues(0.dp),
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val background = if (topCornerRadius == 0.dp && bottomCornerRadius == 0.dp) {
+    val glassBackdrop = cardGlassBackdrop()
+    val background = if (glassBackdrop != null) {
+        Modifier.cardGlassSurface(
+            backdrop = glassBackdrop,
+            topCornerRadius = topCornerRadius,
+            bottomCornerRadius = bottomCornerRadius,
+            tint = color,
+        )
+    } else if (topCornerRadius == 0.dp && bottomCornerRadius == 0.dp) {
         Modifier.background(color)
     } else {
         Modifier.squircleSurface(color, topCornerRadius, topCornerRadius, bottomCornerRadius, bottomCornerRadius)

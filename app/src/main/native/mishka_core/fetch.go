@@ -6,12 +6,14 @@ package main
 import "C"
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"mime"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -27,7 +29,10 @@ import (
 
 	"github.com/metacubex/bbolt"
 	"github.com/metacubex/mihomo/common/utils"
+	"github.com/metacubex/mihomo/component/dialer"
 	"github.com/metacubex/mihomo/config"
+	"github.com/metacubex/mihomo/listener/inner"
+	utls "github.com/metacubex/utls"
 )
 
 const fetchTimeout = 60 * time.Second
@@ -127,6 +132,14 @@ func runFetchAndValid(
 	if err != nil {
 		return nil, fmt.Errorf("read config: %w", err)
 	}
+	// 分享链接列表（vless/vmess 等的明文或 base64 订阅）不是 YAML，mihomo 无法
+	// 直接 Unmarshal；识别出来就转成等价 Clash YAML 落盘，后续校验与运行时都走
+	// 同一份文件。age 密文与普通 YAML 不满足「每行都是链接」的判定，不会误伤。
+	if converted, ok := convertShareLinkSubscription(raw); ok {
+		if _, werr := writeFileAtomic(configPath, strings.NewReader(string(converted))); werr == nil {
+			raw = converted
+		}
+	}
 	// age armor 加密的订阅保持加密落盘；UnmarshalRawConfig 内部用全局密钥（由
 	// mishkaSetAgeSecretKey 在 fetch 前设置）在内存中解密以校验，运行时再由 mihomo 解密。
 	rawCfg, err := config.UnmarshalRawConfig(raw)
@@ -209,6 +222,18 @@ func fetchURL(ctx context.Context, u *url.URL, dest string, result *FetchResult,
 	subCtx, cancel := context.WithTimeout(ctx, fetchTimeout)
 	defer cancel()
 
+	// 部分机场的 CDN 会按 TLS 指纹拦截 Go 标准库的握手（表现为导入时 TLS
+	// handshake 失败，但同一地址在浏览器/其它客户端能直接打开）。https 先用
+	// uTLS 的 Chrome 指纹走一遍；失败再退回下面的代理路径，成功语义不变。
+	if scheme == "https" {
+		if body, respHeader, ferr := fetchViaBrowserTLS(subCtx, u, userAgent); ferr == nil {
+			parseUserinfo(respHeader.Get("subscription-userinfo"), result)
+			result.FileName = dispositionFileName(respHeader.Get("Content-Disposition"))
+			return saveFetchedBody(dest, bytes.NewReader(body))
+		}
+	}
+
+
 	client, err := newFetchClient(proxyURL)
 	if err != nil {
 		return err
@@ -230,10 +255,72 @@ func fetchURL(ctx context.Context, u *url.URL, dest string, result *FetchResult,
 	parseUserinfo(resp.Header.Get("subscription-userinfo"), result)
 	result.FileName = dispositionFileName(resp.Header.Get("Content-Disposition"))
 
+	return saveFetchedBody(dest, resp.Body)
+}
+
+// fetchViaBrowserTLS 用 Chrome 的 TLS 指纹拉取订阅。拨号顺序与
+// component/http 保持一致：内核隧道在运行时先走隧道，否则直连。不读 env
+// 代理（那条路径由 fallback 的 clashHttp 负责），避免 CONNECT 后二次拨号。
+// 任何失败都返回 error，由 fetchURL 退回标准路径。
+func fetchViaBrowserTLS(ctx context.Context, u *url.URL, userAgent string) ([]byte, http.Header, error) {
+	dialTCP := func(ctx context.Context, network, address string) (net.Conn, error) {
+		if conn, err := inner.HandleTcp(inner.GetTunnel(), address, ""); err == nil {
+			return conn, nil
+		}
+		return dialer.DialContext(ctx, network, address)
+	}
+	transport := &http.Transport{
+		DisableKeepAlives:     true,
+		IdleConnTimeout:       30 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		DialContext:           dialTCP,
+		DialTLSContext: func(ctx context.Context, network, address string) (net.Conn, error) {
+			rawConn, err := dialTCP(ctx, network, address)
+			if err != nil {
+				return nil, err
+			}
+			host, _, splitErr := net.SplitHostPort(address)
+			if splitErr != nil {
+				host = address
+			}
+			uConn := utls.UClient(rawConn, &utls.Config{
+				ServerName: host,
+				NextProtos: []string{"http/1.1"},
+			}, utls.HelloChrome_Auto)
+			if err := uConn.HandshakeContext(ctx); err != nil {
+				_ = rawConn.Close()
+				return nil, err
+			}
+			return uConn, nil
+		},
+	}
+	client := &http.Client{Transport: transport}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	req.Header.Set("User-Agent", userAgent)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, nil, fmt.Errorf("http status %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, nil, err
+	}
+	return body, resp.Header, nil
+}
+
+func saveFetchedBody(dest string, body io.Reader) error {
 	if err := os.MkdirAll(P.Dir(dest), 0700); err != nil {
 		return err
 	}
-	n, err := writeFileAtomic(dest, resp.Body)
+	n, err := writeFileAtomic(dest, body)
 	if err != nil {
 		return err
 	}

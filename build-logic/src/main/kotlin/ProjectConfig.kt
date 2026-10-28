@@ -1,9 +1,10 @@
 import org.gradle.api.Project
 
 object ProjectConfig {
-    const val APP_NAME = "Sakura Clash"
+    const val APP_NAME = "SakuraClash"
     const val PACKAGE_NAME = "top.yukonga.mishka"
-    const val VERSION_NAME = "1.0.3"
+    const val APPLICATION_ID = "com.linqi.sakuraclash"
+    const val VERSION_NAME = "1.1.0"
 
     object Android {
         const val TARGET_SDK = 37

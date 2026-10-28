@@ -1,5 +1,8 @@
 package top.yukonga.mishka.ui.screen.home
 
+import top.yukonga.mishka.ui.component.blur.cardGlassBackdrop
+import top.yukonga.mishka.ui.component.blur.cardGlassSurface
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -74,11 +77,14 @@ fun LazyListScope.systemCardsSection(
                 .height(IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            val glassBackdrop = cardGlassBackdrop()
             Card(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxHeight(),
+                    .fillMaxHeight()
+                    .then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp) else Modifier),
                 insideMargin = PaddingValues(16.dp),
+                colors = if (glassBackdrop != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -104,11 +110,14 @@ fun LazyListScope.systemCardsSection(
                 InfoRow(stringResource(R.string.home_interface), systemInfo.interfaceName, Modifier.padding(top = 4.dp))
             }
 
+            val glassBackdrop2 = cardGlassBackdrop()
             Card(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxHeight(),
+                    .fillMaxHeight()
+                    .then(if (glassBackdrop2 != null) Modifier.cardGlassSurface(glassBackdrop2, 16.dp, 16.dp) else Modifier),
                 insideMargin = PaddingValues(16.dp),
+                colors = if (glassBackdrop2 != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -320,9 +329,11 @@ private fun TrafficDetailPanel(
     total: String,
     expire: String,
 ) {
+    val glassBackdrop = cardGlassBackdrop()
     Card(
         modifier = Modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 12.dp, 12.dp) else Modifier),
         cornerRadius = 12.dp,
         insideMargin = PaddingValues(
             start = 12.dp,
@@ -331,8 +342,12 @@ private fun TrafficDetailPanel(
             bottom = 14.dp,
         ),
         colors = CardDefaults.defaultColors(
-            // onSurface 低透明度叠加在 sheet 背景上，深浅色均得到轻微对比的面板底色
-            color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.04f),
+            // onSurface 低透明度叠加在 sheet 背景上，深浅色均得到轻微对比的面板底色；玻璃开时透明
+            color = if (glassBackdrop != null) {
+                Color.Transparent
+            } else {
+                MiuixTheme.colorScheme.onSurface.copy(alpha = 0.04f)
+            },
         ),
     ) {
         Column(

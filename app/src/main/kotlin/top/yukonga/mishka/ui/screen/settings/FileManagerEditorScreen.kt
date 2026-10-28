@@ -76,6 +76,7 @@ fun FileManagerEditorScreen(
     val barColor = if (blurActive) Color.Transparent else MiuixTheme.colorScheme.surface
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             BlurredBar(backdrop = backdrop, blurActive = blurActive) {
                 // 编辑屏纵向空间优先，固定小顶栏（编辑器内部滚动不经宿主 nestedScroll，大标题也无法折叠）

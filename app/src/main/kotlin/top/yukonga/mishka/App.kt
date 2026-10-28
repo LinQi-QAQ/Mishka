@@ -12,6 +12,10 @@ import top.yukonga.mishka.platform.FilePicker
 import top.yukonga.mishka.platform.PlatformStorage
 import top.yukonga.mishka.platform.WifiPolicyController
 import top.yukonga.mishka.ui.component.blur.LocalBlurEnabled
+import top.yukonga.mishka.ui.component.blur.LocalCardBackgroundImage
+import top.yukonga.mishka.ui.component.blur.LocalCardGlassBlur
+import top.yukonga.mishka.ui.component.blur.LocalCardGlassTint
+import top.yukonga.mishka.ui.component.blur.LocalCardLiquidGlass
 import top.yukonga.mishka.ui.component.blur.LocalTopBarBlurStyle
 import top.yukonga.mishka.ui.navigation.AppNavigation
 import top.yukonga.mishka.ui.theme.LocalAppDarkMode
@@ -61,7 +65,6 @@ fun App(
     filePicker: FilePicker? = null,
     storage: PlatformStorage? = null,
     bootStartManager: BootStartManager? = null,
-    mihomoVersion: String = "",
     onScanQR: ((callback: (String?) -> Unit) -> Unit)? = null,
     wifiPolicyController: WifiPolicyController? = null,
     onRequestWifiPermission: (((Boolean) -> Unit) -> Unit)? = null,
@@ -81,7 +84,12 @@ fun App(
         themeConfig.colorMode == 2 -> ColorSchemeMode.MonetDark
         else -> ColorSchemeMode.MonetSystem
     }
-    val isDark = themeConfig.resolveIsDark(isSystemInDarkTheme())
+    // 设了壁纸且指定壁纸文字颜色时以文字颜色为准：浅色字 = 强制深色界面，深色字 = 强制浅色界面
+    val isDark = when {
+        themeConfig.backgroundImagePath != null && themeConfig.backgroundTextMode == "light" -> true
+        themeConfig.backgroundImagePath != null && themeConfig.backgroundTextMode == "dark" -> false
+        else -> themeConfig.resolveIsDark(isSystemInDarkTheme())
+    }
     val systemSeedColor = if (themeConfig.useMonet && themeConfig.accentColor == ThemeAccentColor.Default) {
         platformDynamicColors(isDark).primary
     } else {
@@ -126,6 +134,10 @@ fun App(
             LocalPlatformDensity provides currentDensity,
             LocalDensity provides appDensity,
             LocalBlurEnabled provides themeConfig.blurEnabled,
+            LocalCardLiquidGlass provides themeConfig.cardLiquidGlass,
+            LocalCardGlassBlur provides themeConfig.cardGlassBlurRadius,
+            LocalCardGlassTint provides themeConfig.cardGlassTintAlpha,
+            LocalCardBackgroundImage provides themeConfig.backgroundImagePath,
             LocalTopBarBlurStyle provides themeConfig.topBarBlurStyle,
             LocalContentColor provides MiuixTheme.colorScheme.onBackground,
         ) {
@@ -148,7 +160,6 @@ fun App(
                 filePicker = filePicker,
                 storage = storage,
                 bootStartManager = bootStartManager,
-                mihomoVersion = mihomoVersion,
                 onScanQR = onScanQR,
                 wifiPolicyController = wifiPolicyController,
                 onRequestWifiPermission = onRequestWifiPermission,

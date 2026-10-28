@@ -145,7 +145,7 @@ object RootHelper {
         }
     }
 
-    fun killAsRoot(pid: Int, tunDevice: String = "Mishka"): Boolean {
+    fun killAsRoot(pid: Int, tunDevice: String = "SakuraClash"): Boolean {
         try {
             Log.i(TAG, "Killing root process: pid=$pid")
             runRootCommand("kill $pid")
@@ -175,7 +175,7 @@ object RootHelper {
         }
     }
 
-    fun killMihomoByName(tunDevice: String = "Mishka") {
+    fun killMihomoByName(tunDevice: String = "SakuraClash") {
         try {
             Log.w(TAG, "Falling back to pkill for libmihomo_runner.so")
             runRootCommand("pkill -TERM -f libmihomo_runner.so")

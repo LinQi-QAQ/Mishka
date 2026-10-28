@@ -162,6 +162,7 @@ fun RulesSettingsScreen(
     val canSave = loaded && activeId != null && !overrideState.isLoading
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             BlurredBar(backdrop = backdrop, blurActive = blurActive) {
                 AdaptiveTopAppBar(

@@ -6,7 +6,8 @@
 
     <style name="Theme.Mishka.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@android:color/background_light</item>
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_flower</item>
+        <item name="windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
         <item name="postSplashScreenTheme">@style/Theme.Mishka</item>
     </style>
 

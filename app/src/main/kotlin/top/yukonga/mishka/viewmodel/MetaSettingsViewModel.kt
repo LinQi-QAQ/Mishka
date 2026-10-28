@@ -20,6 +20,7 @@ import top.yukonga.mishka.data.GeoDataUpdater
 import top.yukonga.mishka.data.repository.OverrideJsonStore
 import top.yukonga.mishka.domain.model.ConfigurationOverride
 import top.yukonga.mishka.domain.model.SnifferOverride
+import top.yukonga.mishka.domain.model.TlsFragmentOverride
 import top.yukonga.mishka.platform.showToast
 import top.yukonga.mishka.service.ProfileFileOps
 import top.yukonga.mishka.util.describe
@@ -53,6 +54,15 @@ class MetaSettingsViewModel(
 
     fun update(transform: (ConfigurationOverride) -> ConfigurationOverride) {
         store.update(transform)
+    }
+
+    fun updateTlsFragment(transform: (TlsFragmentOverride) -> TlsFragmentOverride) {
+        store.update { state ->
+            val current = state.tlsFragment ?: TlsFragmentOverride()
+            val next = transform(current)
+            val allNull = next == TlsFragmentOverride()
+            state.copy(tlsFragment = if (allNull) null else next)
+        }
     }
 
     fun updateSniffer(transform: (SnifferOverride) -> SnifferOverride) {
@@ -107,6 +117,13 @@ data class MetaSettingsUiState(
     val tcpConcurrent: Boolean? = null,
     val findProcessMode: String? = null,
     val sniffer: SnifferOverride? = null,
+    val tlsFragment: TlsFragmentOverride? = null,
+)
+
+@Immutable
+data class GeoDataUiState(
+    val isUpdating: Boolean = false,
+    val summary: String = "",
 )
 
 @Immutable
@@ -121,4 +138,5 @@ private fun ConfigurationOverride.toMetaUi() = MetaSettingsUiState(
     tcpConcurrent = tcpConcurrent,
     findProcessMode = findProcessMode,
     sniffer = sniffer,
+    tlsFragment = tlsFragment,
 )

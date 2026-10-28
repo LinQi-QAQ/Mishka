@@ -158,7 +158,7 @@ class WebDavClient(
     }
 
     companion object {
-        const val BACKUP_DIR = "Mishka"
+        const val BACKUP_DIR = "SakuraClash"
         const val BACKUP_FILE = "mishka-backup.zip"
         private val REDIRECT_CODES = setOf(301, 302, 307, 308)
         private const val MAX_REDIRECTS = 3

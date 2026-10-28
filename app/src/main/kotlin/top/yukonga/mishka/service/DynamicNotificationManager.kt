@@ -64,7 +64,7 @@ class DynamicNotificationManager(
         val isDynamicEnabled = storage.getString(StorageKeys.DYNAMIC_NOTIFICATION, "true") == "true"
         val isDynamic = isDynamicEnabled && tunMode == TunMode.Vpn
         if (isDynamic) {
-            val profileName = storage.getString(StorageKeys.ACTIVE_PROFILE_NAME, "Mishka")
+            val profileName = storage.getString(StorageKeys.ACTIVE_PROFILE_NAME, "Sakura Clash")
             start(profileName)
         } else {
             // 与设置页的隧道模式名同源，避免通知里出现「Root TUN」而设置里写「ROOT TUN」

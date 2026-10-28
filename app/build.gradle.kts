@@ -30,6 +30,8 @@ dependencies {
     implementation(libs.material.icons.extended)
     implementation(libs.hiddenapibypass)
     implementation(libs.quickie.bundled)
+    implementation(libs.mlkit.barcode.scanning)
+    implementation(libs.kaml)
     implementation(libs.scripta.editor)
     ksp(libs.androidx.room3.compiler)
 }
@@ -87,11 +89,42 @@ android {
         targetCompatibility = JavaVersion.VERSION_21
     }
     defaultConfig {
-        applicationId = ProjectConfig.PACKAGE_NAME
+        applicationId = ProjectConfig.APPLICATION_ID
         minSdk = ProjectConfig.Android.MIN_SDK
         targetSdk = ProjectConfig.Android.TARGET_SDK
         versionName = ProjectConfig.VERSION_NAME
         versionCode = gitVersionCode
+    }
+    // beta 签名：密钥信息放在仓库外的 beta.properties（不进仓库），
+    // 每台机器自建 keystore 后填 beta.keystore.* 四项即可；同签名 beta 包可互相覆盖更新
+    val betaProps = java.util.Properties().apply {
+        val propsFile = rootProject.file("beta.properties")
+        if (propsFile.exists()) propsFile.inputStream().use { load(it) }
+    }
+    signingConfigs {
+        create("betaLocal") {
+            storeFile = file(betaProps.getProperty("beta.keystore.path", "beta.keystore"))
+            storePassword = betaProps.getProperty("beta.keystore.storePassword", "")
+            keyAlias = betaProps.getProperty("beta.keystore.keyAlias", "beta")
+            keyPassword = betaProps.getProperty("beta.keystore.keyPassword", "")
+        }
+    }
+    // 测试渠道：beta 改包名与稳定版共存，手机双开测试用
+    flavorDimensions += "channel"
+    productFlavors {
+        create("stable") {
+            dimension = "channel"
+        }
+        create("beta") {
+            dimension = "channel"
+            applicationIdSuffix = ".beta"
+            versionNameSuffix = "-beta"
+            // 没有 beta.properties（例如 CI）时不绑 betaLocal 签名，debug/release 回退到默认签名配置，
+            // 避免缺 keystore 导致整包构建失败；本地有 beta.properties 时仍用 beta 签名
+            if (rootProject.file("beta.properties").exists()) {
+                signingConfig = signingConfigs.getByName("betaLocal")
+            }
+        }
     }
     dependenciesInfo {
         includeInApk = false
@@ -249,6 +282,41 @@ val buildMihomo = tasks.register("buildMihomo") {
     description = "Build unified mihomo library for all supported ABIs"
     dependsOn(buildMihomoTasks)
 }
+
+// 打 mihomo 补丁：TLS 分片 patch 不在子模块上游里，以文件形式放在 patches/，
+// 构建前自动打上（已打过则跳过），保证 clone 下来就能直接编出带分片功能的定制版
+val applyMihomoPatches = tasks.register("applyMihomoPatches") {
+    group = "mihomo"
+    description = "Apply vendored mihomo patches if not already applied"
+    doLast {
+        val patchFile = rootProject.layout.projectDirectory.file("patches/mihomo-tls-fragment.patch").asFile
+        val mihomoDir = mihomoSubmoduleDir.asFile
+        fun gitApplyCheck(reverse: Boolean): Boolean {
+            val args = mutableListOf("apply", "--check")
+            if (reverse) args.add("--reverse")
+            args.add(patchFile.absolutePath)
+            val result = project.exec {
+                commandLine("git", *args.toTypedArray())
+                workingDir(mihomoDir)
+                isIgnoreExitValue = true
+            }
+            return result.exitValue == 0
+        }
+        if (gitApplyCheck(true)) {
+            logger.lifecycle("mihomo patch already applied, skipping")
+        } else {
+            if (!gitApplyCheck(false)) {
+                throw GradleException("mihomo patch does not apply cleanly; check patches/mihomo-tls-fragment.patch against the mihomo submodule")
+            }
+            project.exec {
+                commandLine("git", "apply", patchFile.absolutePath)
+                workingDir(mihomoDir)
+            }
+            logger.lifecycle("mihomo patch applied")
+        }
+    }
+}
+buildMihomoTasks.forEach { it.configure { dependsOn(applyMihomoPatches) } }
 
 tasks.named("preBuild") {
     dependsOn(buildMihomo)

@@ -84,6 +84,10 @@ import top.yukonga.mishka.ui.component.CardSegment
 import top.yukonga.mishka.ui.component.ListPopupDefaults.MenuPositionProvider
 import top.yukonga.mishka.ui.component.blur.BlurredBar
 import top.yukonga.mishka.ui.component.blur.rememberBlurBackdrop
+import top.yukonga.mishka.ui.component.blur.CardGlassBackground
+import top.yukonga.mishka.ui.component.blur.LocalCardBackdrop
+import top.yukonga.mishka.ui.component.blur.LocalCardBackgroundImage
+import androidx.compose.runtime.CompositionLocalProvider
 import top.yukonga.mishka.ui.platform.IconLoader
 import top.yukonga.mishka.ui.theme.LocalPlatformDensity
 import top.yukonga.mishka.ui.theme.StatusColors
@@ -254,8 +258,15 @@ fun ProxyScreen(
     val backdrop = rememberBlurBackdrop()
     val blurActive = backdrop != null
     val barColor = if (blurActive) Color.Transparent else MiuixTheme.colorScheme.surface
+    val cardBackdrop = rememberBlurBackdrop()
+    // 设了壁纸时主页壁纸由 MainPage 的静态层统一绘制并记录，卡片改采样上层传入的 backdrop
+    val hasWallpaper = LocalCardBackgroundImage.current != null
+    val inheritedCardBackdrop = LocalCardBackdrop.current
+    val effectiveCardBackdrop = if (hasWallpaper) inheritedCardBackdrop else cardBackdrop
 
+    CompositionLocalProvider(LocalCardBackdrop provides effectiveCardBackdrop) {
     Scaffold(
+            containerColor = Color.Transparent,
         modifier = modifier,
         topBar = {
             BlurredBar(backdrop = backdrop, blurActive = blurActive) {
@@ -373,6 +384,7 @@ fun ProxyScreen(
         },
     ) { innerPadding ->
         WideContentBox(modifier = if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier) { sidePadding ->
+        if (!hasWallpaper) CardGlassBackground(cardBackdrop)
             if (groups.isEmpty()) {
                 Column(
                     modifier = Modifier
@@ -534,6 +546,7 @@ fun ProxyScreen(
                 }
             }
         }
+    }
     }
 }
 

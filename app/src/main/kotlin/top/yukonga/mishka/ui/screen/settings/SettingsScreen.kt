@@ -2,9 +2,11 @@ package top.yukonga.mishka.ui.screen.settings
 
 import android.app.Activity
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +30,9 @@ import top.yukonga.mishka.ui.component.AdaptiveTopAppBar
 import top.yukonga.mishka.ui.component.CardItem
 import top.yukonga.mishka.ui.component.HintCard
 import top.yukonga.mishka.ui.component.blur.BlurredBar
+import top.yukonga.mishka.ui.component.blur.CardGlassBackground
+import top.yukonga.mishka.ui.component.blur.LocalCardBackdrop
+import top.yukonga.mishka.ui.component.blur.LocalCardBackgroundImage
 import top.yukonga.mishka.ui.component.blur.rememberBlurBackdrop
 import top.yukonga.mishka.ui.component.groupedCardItems
 import top.yukonga.mishka.ui.util.WideContentBox
@@ -102,293 +107,307 @@ fun SettingsScreen(
     )
 
     val backdrop = rememberBlurBackdrop()
+    val cardBackdrop = rememberBlurBackdrop()
+    // 设了壁纸时主页壁纸由 MainPage 的静态层统一绘制并记录，卡片改采样上层传入的 backdrop
+    val hasWallpaper = LocalCardBackgroundImage.current != null
+    val inheritedCardBackdrop = LocalCardBackdrop.current
+    val effectiveCardBackdrop = if (hasWallpaper) inheritedCardBackdrop else cardBackdrop
     val blurActive = backdrop != null
     val barColor = if (blurActive) Color.Transparent else MiuixTheme.colorScheme.surface
 
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            BlurredBar(backdrop = backdrop, blurActive = blurActive) {
-                AdaptiveTopAppBar(
-                    title = stringResource(R.string.settings_title),
-                    color = barColor,
-                    scrollBehavior = scrollBehavior,
-                )
-            }
-        },
-    ) { innerPadding ->
-        WideContentBox { sidePadding ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
-                    .scrollEndHaptic()
-                    .overScrollVertical()
-                    .nestedScroll(scrollBehavior.nestedScrollConnection),
-                contentPadding = PaddingValues(
-                    top = innerPadding.calculateTopPadding(),
-                    start = sidePadding,
-                    end = sidePadding,
-                    bottom = bottomPadding,
-                ),
-            ) {
-                item {
-                    SmallTitle(text = stringResource(R.string.settings_network))
+    CompositionLocalProvider(LocalCardBackdrop provides effectiveCardBackdrop) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            modifier = modifier,
+            topBar = {
+                BlurredBar(backdrop = backdrop, blurActive = blurActive) {
+                    AdaptiveTopAppBar(
+                        title = stringResource(R.string.settings_title),
+                        color = barColor,
+                        scrollBehavior = scrollBehavior,
+                    )
                 }
-                // 隧道模式单独成卡，下面紧跟 ROOT 两种子模式的说明
-                groupedCardItems(
-                    keyPrefix = "settings_tun",
-                    items = buildList {
+            },
+        ) { innerPadding ->
+            Box(
+                Modifier
+                    .fillMaxSize()
+                                ) {
+                if (!hasWallpaper) CardGlassBackground(cardBackdrop)
+                WideContentBox { sidePadding ->
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
+                            .scrollEndHaptic()
+                            .overScrollVertical()
+                            .nestedScroll(scrollBehavior.nestedScrollConnection),
+                        contentPadding = PaddingValues(
+                            top = innerPadding.calculateTopPadding(),
+                            start = sidePadding,
+                            end = sidePadding,
+                            bottom = bottomPadding,
+                        ),
+                    ) {
+                        item {
+                            SmallTitle(text = stringResource(R.string.settings_network))
+                        }
+                        // 隧道模式单独成卡，下面紧跟 ROOT 两种子模式的说明
+                        groupedCardItems(
+                            keyPrefix = "settings_tun",
+                            items = buildList {
+                                if (hasRootPermission) {
+                                    add(CardItem("tunMode") {
+                                        OverlayDropdownPreference(
+                                            title = stringResource(R.string.settings_tun_mode),
+                                            summary = when (tunModeIndex) {
+                                                1 -> stringResource(R.string.settings_tun_root_tun_summary)
+                                                2 -> stringResource(R.string.settings_tun_root_tproxy_summary)
+                                                else -> stringResource(R.string.settings_tun_vpn_summary)
+                                            },
+                                            items = tunModeItems,
+                                            selectedIndex = tunModeIndex,
+                                            onSelectedIndexChange = { index ->
+                                                val mode = when (index) {
+                                                    1 -> "root_tun"
+                                                    2 -> "root_tproxy"
+                                                    else -> "vpn"
+                                                }
+                                                storage?.putString(StorageKeys.TUN_MODE, mode)
+                                                tunModeIndex = index
+                                            },
+                                            enabled = !isProxyRunning,
+                                        )
+                                    })
+                                }
+                                if (tunModeIndex == 0) {
+                                    add(CardItem("vpnSettings") {
+                                        ArrowPreference(
+                                            title = stringResource(R.string.settings_vpn_settings),
+                                            summary = stringResource(R.string.settings_vpn_summary),
+                                            onClick = onNavigateVpnSettings,
+                                        )
+                                    })
+                                }
+                                if (tunModeIndex == 1 || tunModeIndex == 2) {
+                                    add(CardItem("rootSettings") {
+                                        ArrowPreference(
+                                            title = stringResource(R.string.root_settings_title),
+                                            summary = stringResource(R.string.root_settings_summary),
+                                            onClick = onNavigateRootSettings,
+                                        )
+                                    })
+                                }
+                            },
+                        )
+                        // ROOT 两种代理方式的注释：只在有隧道模式选择器时展示
                         if (hasRootPermission) {
-                            add(CardItem("tunMode") {
-                                OverlayDropdownPreference(
-                                    title = stringResource(R.string.settings_tun_mode),
-                                    summary = when (tunModeIndex) {
-                                        1 -> stringResource(R.string.settings_tun_root_tun_summary)
-                                        2 -> stringResource(R.string.settings_tun_root_tproxy_summary)
-                                        else -> stringResource(R.string.settings_tun_vpn_summary)
-                                    },
-                                    items = tunModeItems,
-                                    selectedIndex = tunModeIndex,
-                                    onSelectedIndexChange = { index ->
-                                        val mode = when (index) {
-                                            1 -> "root_tun"
-                                            2 -> "root_tproxy"
-                                            else -> "vpn"
-                                        }
-                                        storage?.putString(StorageKeys.TUN_MODE, mode)
-                                        tunModeIndex = index
-                                    },
-                                    enabled = !isProxyRunning,
-                                )
-                            })
+                            item(key = "tun_mode_note") {
+                                HintCard(text = stringResource(R.string.settings_tun_mode_note))
+                            }
                         }
-                        if (tunModeIndex == 0) {
-                            add(CardItem("vpnSettings") {
-                                ArrowPreference(
-                                    title = stringResource(R.string.settings_vpn_settings),
-                                    summary = stringResource(R.string.settings_vpn_summary),
-                                    onClick = onNavigateVpnSettings,
-                                )
-                            })
+                        groupedCardItems(
+                            keyPrefix = "settings_network",
+                            items = buildList {
+                                add(CardItem("override") {
+                                    ArrowPreference(
+                                        title = stringResource(R.string.settings_override_settings),
+                                        summary = stringResource(R.string.settings_override_summary),
+                                        onClick = onNavigateNetworkSettings,
+                                    )
+                                })
+                                add(CardItem("meta") {
+                                    ArrowPreference(
+                                        title = stringResource(R.string.settings_meta_settings),
+                                        summary = stringResource(R.string.settings_meta_summary),
+                                        onClick = onNavigateMetaSettings,
+                                    )
+                                })
+                                add(CardItem("externalControl") {
+                                    ArrowPreference(
+                                        title = stringResource(R.string.external_control_title),
+                                        summary = stringResource(R.string.settings_external_control_summary),
+                                        onClick = onNavigateExternalControl,
+                                    )
+                                })
+                                add(CardItem("automation") {
+                                    ArrowPreference(
+                                        title = stringResource(R.string.automation_title),
+                                        summary = stringResource(R.string.settings_automation_summary),
+                                        onClick = onNavigateAutomation,
+                                    )
+                                })
+                                add(CardItem("appProxy") {
+                                    ArrowPreference(
+                                        title = stringResource(R.string.settings_app_proxy),
+                                        summary = stringResource(R.string.settings_app_proxy_summary),
+                                        onClick = onNavigateAppProxy,
+                                    )
+                                })
+                                add(CardItem("wifiPolicy") {
+                                    ArrowPreference(
+                                        title = stringResource(R.string.settings_wifi_policy),
+                                        summary = stringResource(R.string.settings_wifi_policy_summary),
+                                        onClick = onNavigateWifiPolicy,
+                                    )
+                                })
+                                add(CardItem("fileManager") {
+                                    ArrowPreference(
+                                        title = stringResource(R.string.settings_file_manager),
+                                        summary = stringResource(R.string.settings_file_manager_summary),
+                                        onClick = onNavigateFileManager,
+                                    )
+                                })
+                                add(CardItem("overrides") {
+                                    ArrowPreference(
+                                        title = stringResource(R.string.settings_overrides),
+                                        summary = stringResource(R.string.settings_overrides_summary),
+                                        onClick = onNavigateOverrides,
+                                    )
+                                })
+                                add(CardItem("rulesSettings") {
+                                    ArrowPreference(
+                                        title = stringResource(R.string.settings_rules_title),
+                                        summary = stringResource(R.string.settings_rules_summary),
+                                        onClick = onNavigateRulesSettings,
+                                    )
+                                })
+                                add(CardItem("backup") {
+                                    ArrowPreference(
+                                        title = stringResource(R.string.settings_backup),
+                                        summary = stringResource(R.string.settings_backup_summary),
+                                        onClick = onNavigateBackup,
+                                    )
+                                })
+                            },
+                        )
+                        item {
+                            SmallTitle(text = stringResource(R.string.settings_general))
                         }
-                        if (tunModeIndex == 1 || tunModeIndex == 2) {
-                            add(CardItem("rootSettings") {
-                                ArrowPreference(
-                                    title = stringResource(R.string.root_settings_title),
-                                    summary = stringResource(R.string.root_settings_summary),
-                                    onClick = onNavigateRootSettings,
-                                )
-                            })
-                        }
-                    },
-                )
-                // ROOT 两种代理方式的注释：只在有隧道模式选择器时展示
-                if (hasRootPermission) {
-                    item(key = "tun_mode_note") {
-                        HintCard(text = stringResource(R.string.settings_tun_mode_note))
+                        groupedCardItems(
+                            keyPrefix = "settings_general",
+                            outerBottomPadding = 12.dp,
+                            items = buildList {
+                                add(CardItem("language") {
+                                    val activity = LocalContext.current as? Activity
+                                    val languageItems = LanguageHelper.LANGUAGES.map { lang ->
+                                        if (lang.code.isEmpty()) stringResource(R.string.settings_language_follow_system)
+                                        else lang.nativeName
+                                    }
+                                    var languageIndex by remember {
+                                        mutableIntStateOf(activity?.let { LanguageHelper.getCurrentIndex(it) } ?: 0)
+                                    }
+                                    OverlayDropdownPreference(
+                                        title = stringResource(R.string.settings_language_title),
+                                        summary = stringResource(R.string.settings_language_summary),
+                                        items = languageItems,
+                                        selectedIndex = languageIndex,
+                                        onSelectedIndexChange = { index ->
+                                            languageIndex = index
+                                            activity?.let {
+                                                LanguageHelper.setLanguage(it, LanguageHelper.LANGUAGES[index].code)
+                                            }
+                                        },
+                                    )
+                                })
+                                if (onHideTaskCardChange != null) {
+                                    add(CardItem("hideTaskCard") {
+                                        SwitchPreference(
+                                            title = stringResource(R.string.settings_hide_task_card),
+                                            summary = stringResource(R.string.settings_hide_task_card_summary),
+                                            checked = isHideTaskCardEnabled,
+                                            onCheckedChange = { checked ->
+                                                storage?.putString(StorageKeys.HIDE_TASK_CARD, if (checked) "true" else "false")
+                                                isHideTaskCardEnabled = checked
+                                                onHideTaskCardChange(checked)
+                                            },
+                                        )
+                                    })
+                                }
+                                add(CardItem("dynamicNotification") {
+                                    val isVpnMode = tunModeIndex == 0
+                                    SwitchPreference(
+                                        title = stringResource(R.string.settings_dynamic_notification),
+                                        summary = stringResource(
+                                            if (isVpnMode) R.string.settings_dynamic_notification_summary
+                                            else R.string.settings_dynamic_notification_summary_root_unsupported
+                                        ),
+                                        checked = isDynamicNotificationEnabled && isVpnMode,
+                                        enabled = isVpnMode,
+                                        onCheckedChange = { checked ->
+                                            storage?.putString(StorageKeys.DYNAMIC_NOTIFICATION, if (checked) "true" else "false")
+                                            isDynamicNotificationEnabled = checked
+                                            ProxyServiceBridge.requestNotificationRefresh()
+                                        },
+                                    )
+                                })
+                                add(CardItem("subscriptionViaProxy") {
+                                    SwitchPreference(
+                                        title = stringResource(R.string.settings_subscription_via_proxy),
+                                        summary = stringResource(R.string.settings_subscription_via_proxy_summary),
+                                        checked = isUpdateViaProxyEnabled,
+                                        onCheckedChange = { checked ->
+                                            storage?.putString(StorageKeys.SUBSCRIPTION_UPDATE_VIA_PROXY, if (checked) "true" else "false")
+                                            isUpdateViaProxyEnabled = checked
+                                        },
+                                    )
+                                })
+                                add(CardItem("restartAfterUpdate") {
+                                    SwitchPreference(
+                                        title = stringResource(R.string.settings_restart_after_update),
+                                        summary = stringResource(R.string.settings_restart_after_update_summary),
+                                        checked = isRestartAfterUpdateEnabled,
+                                        onCheckedChange = { checked ->
+                                            storage?.putString(
+                                                StorageKeys.RESTART_AFTER_PROFILE_UPDATE,
+                                                if (checked) "true" else "false",
+                                            )
+                                            isRestartAfterUpdateEnabled = checked
+                                        },
+                                    )
+                                })
+                                add(CardItem("autoConnect") {
+                                    SwitchPreference(
+                                        title = stringResource(R.string.settings_auto_connect),
+                                        summary = stringResource(R.string.settings_auto_connect_summary),
+                                        checked = isAutoConnectEnabled,
+                                        onCheckedChange = { checked ->
+                                            storage?.putString(StorageKeys.AUTO_CONNECT_ON_LAUNCH, if (checked) "true" else "false")
+                                            isAutoConnectEnabled = checked
+                                        },
+                                    )
+                                })
+                                if (bootStartManager != null) {
+                                    add(CardItem("autoRestart") {
+                                        SwitchPreference(
+                                            title = stringResource(R.string.settings_auto_restart),
+                                            summary = stringResource(R.string.settings_auto_restart_summary),
+                                            checked = isAutoStartEnabled,
+                                            onCheckedChange = { checked ->
+                                                bootStartManager.setEnabled(checked)
+                                                isAutoStartEnabled = checked
+                                            },
+                                        )
+                                    })
+                                }
+                                add(CardItem("theme") {
+                                    ArrowPreference(
+                                        title = stringResource(R.string.settings_theme_title),
+                                        summary = stringResource(R.string.settings_theme_summary),
+                                        onClick = onNavigateThemeSettings,
+                                    )
+                                })
+                                add(CardItem("about") {
+                                    ArrowPreference(
+                                        title = stringResource(R.string.settings_about),
+                                        summary = "${stringResource(R.string.app_name)} v${BuildConfig.VERSION_NAME}",
+                                        onClick = onNavigateAbout,
+                                    )
+                                })
+                            },
+                        )
                     }
                 }
-                groupedCardItems(
-                    keyPrefix = "settings_network",
-                    items = buildList {
-                        add(CardItem("override") {
-                            ArrowPreference(
-                                title = stringResource(R.string.settings_override_settings),
-                                summary = stringResource(R.string.settings_override_summary),
-                                onClick = onNavigateNetworkSettings,
-                            )
-                        })
-                        add(CardItem("meta") {
-                            ArrowPreference(
-                                title = stringResource(R.string.settings_meta_settings),
-                                summary = stringResource(R.string.settings_meta_summary),
-                                onClick = onNavigateMetaSettings,
-                            )
-                        })
-                        add(CardItem("externalControl") {
-                            ArrowPreference(
-                                title = stringResource(R.string.external_control_title),
-                                summary = stringResource(R.string.settings_external_control_summary),
-                                onClick = onNavigateExternalControl,
-                            )
-                        })
-                        add(CardItem("automation") {
-                            ArrowPreference(
-                                title = stringResource(R.string.automation_title),
-                                summary = stringResource(R.string.settings_automation_summary),
-                                onClick = onNavigateAutomation,
-                            )
-                        })
-                        add(CardItem("appProxy") {
-                            ArrowPreference(
-                                title = stringResource(R.string.settings_app_proxy),
-                                summary = stringResource(R.string.settings_app_proxy_summary),
-                                onClick = onNavigateAppProxy,
-                            )
-                        })
-                        add(CardItem("wifiPolicy") {
-                            ArrowPreference(
-                                title = stringResource(R.string.settings_wifi_policy),
-                                summary = stringResource(R.string.settings_wifi_policy_summary),
-                                onClick = onNavigateWifiPolicy,
-                            )
-                        })
-                        add(CardItem("fileManager") {
-                            ArrowPreference(
-                                title = stringResource(R.string.settings_file_manager),
-                                summary = stringResource(R.string.settings_file_manager_summary),
-                                onClick = onNavigateFileManager,
-                            )
-                        })
-                        add(CardItem("overrides") {
-                            ArrowPreference(
-                                title = stringResource(R.string.settings_overrides),
-                                summary = stringResource(R.string.settings_overrides_summary),
-                                onClick = onNavigateOverrides,
-                            )
-                        })
-                        add(CardItem("rulesSettings") {
-                            ArrowPreference(
-                                title = stringResource(R.string.settings_rules_title),
-                                summary = stringResource(R.string.settings_rules_summary),
-                                onClick = onNavigateRulesSettings,
-                            )
-                        })
-                        add(CardItem("backup") {
-                            ArrowPreference(
-                                title = stringResource(R.string.settings_backup),
-                                summary = stringResource(R.string.settings_backup_summary),
-                                onClick = onNavigateBackup,
-                            )
-                        })
-                    },
-                )
-                item {
-                    SmallTitle(text = stringResource(R.string.settings_general))
-                }
-                groupedCardItems(
-                    keyPrefix = "settings_general",
-                    outerBottomPadding = 12.dp,
-                    items = buildList {
-                        add(CardItem("language") {
-                            val activity = LocalContext.current as? Activity
-                            val languageItems = LanguageHelper.LANGUAGES.map { lang ->
-                                if (lang.code.isEmpty()) stringResource(R.string.settings_language_follow_system)
-                                else lang.nativeName
-                            }
-                            var languageIndex by remember {
-                                mutableIntStateOf(activity?.let { LanguageHelper.getCurrentIndex(it) } ?: 0)
-                            }
-                            OverlayDropdownPreference(
-                                title = stringResource(R.string.settings_language_title),
-                                summary = stringResource(R.string.settings_language_summary),
-                                items = languageItems,
-                                selectedIndex = languageIndex,
-                                onSelectedIndexChange = { index ->
-                                    languageIndex = index
-                                    activity?.let {
-                                        LanguageHelper.setLanguage(it, LanguageHelper.LANGUAGES[index].code)
-                                    }
-                                },
-                            )
-                        })
-                        if (onHideTaskCardChange != null) {
-                            add(CardItem("hideTaskCard") {
-                                SwitchPreference(
-                                    title = stringResource(R.string.settings_hide_task_card),
-                                    summary = stringResource(R.string.settings_hide_task_card_summary),
-                                    checked = isHideTaskCardEnabled,
-                                    onCheckedChange = { checked ->
-                                        storage?.putString(StorageKeys.HIDE_TASK_CARD, if (checked) "true" else "false")
-                                        isHideTaskCardEnabled = checked
-                                        onHideTaskCardChange(checked)
-                                    },
-                                )
-                            })
-                        }
-                        add(CardItem("dynamicNotification") {
-                            val isVpnMode = tunModeIndex == 0
-                            SwitchPreference(
-                                title = stringResource(R.string.settings_dynamic_notification),
-                                summary = stringResource(
-                                    if (isVpnMode) R.string.settings_dynamic_notification_summary
-                                    else R.string.settings_dynamic_notification_summary_root_unsupported
-                                ),
-                                checked = isDynamicNotificationEnabled && isVpnMode,
-                                enabled = isVpnMode,
-                                onCheckedChange = { checked ->
-                                    storage?.putString(StorageKeys.DYNAMIC_NOTIFICATION, if (checked) "true" else "false")
-                                    isDynamicNotificationEnabled = checked
-                                    ProxyServiceBridge.requestNotificationRefresh()
-                                },
-                            )
-                        })
-                        add(CardItem("subscriptionViaProxy") {
-                            SwitchPreference(
-                                title = stringResource(R.string.settings_subscription_via_proxy),
-                                summary = stringResource(R.string.settings_subscription_via_proxy_summary),
-                                checked = isUpdateViaProxyEnabled,
-                                onCheckedChange = { checked ->
-                                    storage?.putString(StorageKeys.SUBSCRIPTION_UPDATE_VIA_PROXY, if (checked) "true" else "false")
-                                    isUpdateViaProxyEnabled = checked
-                                },
-                            )
-                        })
-                        add(CardItem("restartAfterUpdate") {
-                            SwitchPreference(
-                                title = stringResource(R.string.settings_restart_after_update),
-                                summary = stringResource(R.string.settings_restart_after_update_summary),
-                                checked = isRestartAfterUpdateEnabled,
-                                onCheckedChange = { checked ->
-                                    storage?.putString(
-                                        StorageKeys.RESTART_AFTER_PROFILE_UPDATE,
-                                        if (checked) "true" else "false",
-                                    )
-                                    isRestartAfterUpdateEnabled = checked
-                                },
-                            )
-                        })
-                        add(CardItem("autoConnect") {
-                            SwitchPreference(
-                                title = stringResource(R.string.settings_auto_connect),
-                                summary = stringResource(R.string.settings_auto_connect_summary),
-                                checked = isAutoConnectEnabled,
-                                onCheckedChange = { checked ->
-                                    storage?.putString(StorageKeys.AUTO_CONNECT_ON_LAUNCH, if (checked) "true" else "false")
-                                    isAutoConnectEnabled = checked
-                                },
-                            )
-                        })
-                        if (bootStartManager != null) {
-                            add(CardItem("autoRestart") {
-                                SwitchPreference(
-                                    title = stringResource(R.string.settings_auto_restart),
-                                    summary = stringResource(R.string.settings_auto_restart_summary),
-                                    checked = isAutoStartEnabled,
-                                    onCheckedChange = { checked ->
-                                        bootStartManager.setEnabled(checked)
-                                        isAutoStartEnabled = checked
-                                    },
-                                )
-                            })
-                        }
-                        add(CardItem("theme") {
-                            ArrowPreference(
-                                title = stringResource(R.string.settings_theme_title),
-                                summary = stringResource(R.string.settings_theme_summary),
-                                onClick = onNavigateThemeSettings,
-                            )
-                        })
-                        add(CardItem("about") {
-                            ArrowPreference(
-                                title = stringResource(R.string.settings_about),
-                                summary = "Sakura Clash v${BuildConfig.VERSION_NAME}",
-                                onClick = onNavigateAbout,
-                            )
-                        })
-                    },
-                )
             }
         }
     }

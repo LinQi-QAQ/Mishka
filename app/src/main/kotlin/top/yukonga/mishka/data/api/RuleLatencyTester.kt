@@ -24,9 +24,12 @@ class RuleLatencyTester(
     suspend fun measure(url: String, timeoutMillis: Long): Int {
         // 只要代理在跑就走本机端口，与「订阅下载走代理」开关无关——此处测的是代理本身的连通性
         val proxyUrl = proxyResolver.resolve(requireUserToggle = false) ?: return Unavailable
-        // 每次新建 client：复用连接池会省掉 TCP 握手，让重复刷新测出的数字逐次偏低，口径不稳
+        // 每次新建 client，口径固定为「预热后的一次完整往返」：首个请求含 Ktor 引擎冷启动、
+        // 到本机 mixed-port 的建连与内核侧 DNS 冷解析，数字虚高且逐次漂移，先发一次预热丢弃再测。
+        // 连接复用只到本机端口这一段，内核侧拨号与节点路径每个请求仍是独立的
         val client = buildClient(proxyUrl, timeoutMillis)
         return try {
+            runCatching { client.get(url) }
             val start = TimeSource.Monotonic.markNow()
             client.get(url)
             start.elapsedNow().inWholeMilliseconds.toInt()

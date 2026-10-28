@@ -48,6 +48,10 @@ class MishkaApplication : Application() {
         super.attachBaseContext(LanguageHelper.wrapBaseContext(base))
     }
 
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(LanguageHelper.wrapBaseContext(base))
+    }
+
     override fun onCreate() {
         super.onCreate()
         instance = this

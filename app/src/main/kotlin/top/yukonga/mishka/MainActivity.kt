@@ -124,17 +124,12 @@ class MainActivity : ComponentActivity() {
             val url: String? = when (result) {
                 is QRResult.QRSuccess -> {
                     val raw = result.content.rawValue
-                    when {
-                        raw == null -> {
-                            showQrToast(R.string.qr_unsupported)
-                            null
-                        }
-
-                        raw.startsWith("http://") || raw.startsWith("https://") -> raw
-                        else -> {
-                            showQrToast(R.string.qr_invalid_subscription)
-                            null
-                        }
+                    if (raw.isNullOrBlank()) {
+                        showQrToast(R.string.qr_unsupported)
+                        null
+                    } else {
+                        // 内容分类（订阅 URL / 分享链接）交给导入侧判断，这里原样透传
+                        raw
                     }
                 }
 

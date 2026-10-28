@@ -14,6 +14,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import top.yukonga.mishka.R
+import top.yukonga.mishka.data.repository.ChainCatalogEntry
+import top.yukonga.mishka.data.repository.ChainNode
+import top.yukonga.mishka.data.repository.ChainYaml
 import top.yukonga.mishka.data.repository.ConfigValidationException
 import top.yukonga.mishka.data.repository.ImportError
 import top.yukonga.mishka.data.repository.ImportProgress
@@ -141,6 +144,69 @@ class SubscriptionViewModel(
     }
 
     /**
+     * 链接导入（剪贴簿 / 扫码 / 相册识别 / 手动生成）：与文件导入同路建本地配置，
+     * 分享链接文本原样落 pending，apply 时由内核侧的转换器生成最终配置。
+     */
+    fun addFromLinks(name: String, content: String, onComplete: () -> Unit = {}) {
+        runPipeline(ProfileOperation.Import, errorKey = R.string.error_import_failed) {
+            val sub = repository.create(ProfileType.File, name.ifBlank { linkProfileName(content) }, "")
+            pendingOnFailure(sub.id) {
+                fileManager.savePendingConfig(sub.id, content)
+                processor.apply(sub.id, ::reportProgress)
+            }
+            onComplete()
+        }
+    }
+
+    /** 在添加页错误卡上提示一段无法识别的导入内容。 */
+    fun showImportMessage(@StringRes resId: Int) {
+        _uiState.value = _uiState.value.copy(error = context.getString(resId))
+    }
+
+    // === 链式代理 ===
+
+    private val _chainCatalog = MutableStateFlow<List<ChainCatalogEntry>>(emptyList())
+    val chainCatalog: StateFlow<List<ChainCatalogEntry>> = _chainCatalog.asStateFlow()
+    private var chainCatalogLoaded = false
+
+    /** 扫一遍已保存订阅的配置，把可选节点列出来（只读文件，进页面时加载一次）。 */
+    fun loadChainCatalog() {
+        if (chainCatalogLoaded) return
+        chainCatalogLoaded = true
+        viewModelScope.launch {
+            val subs = _uiState.value.subscriptions
+            val entries = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                subs.flatMap { sub ->
+                    val yaml = runCatching {
+                        fileManager.readImportedFile(sub.id, "config.yaml")
+                    }.getOrNull() ?: return@flatMap emptyList()
+                    ChainYaml.extractProxies(yaml).map { node ->
+                        ChainCatalogEntry(sub.id, sub.name, node)
+                    }
+                }
+            }
+            _chainCatalog.value = entries
+        }
+    }
+
+    /** 把选好的节点（链路顺序：入口在前）拼成一份链式代理配置，作为本地配置导入。 */
+    fun addChainProfile(name: String, nodes: List<ChainNode>, onComplete: () -> Unit = {}) {
+        if (nodes.size < 2) return
+        val config = ChainYaml.buildChainConfig(nodes)
+        addFromFile(name.ifBlank { context.getString(R.string.subscription_chain) }, config, onComplete)
+    }
+
+    private fun linkProfileName(content: String): String {
+        val firstLine = content.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
+        val fragment = firstLine.substringAfter('#', "").trim()
+        if (fragment.isNotEmpty()) {
+            val decoded = runCatching { java.net.URLDecoder.decode(fragment, "UTF-8") }.getOrDefault(fragment)
+            if (decoded.isNotBlank()) return decoded
+        }
+        return context.getString(R.string.subscription_imported_name)
+    }
+
+    /**
      * 手动刷新已导入的订阅。
      */
     fun fetchSubscription(id: String) {
@@ -172,6 +238,20 @@ class SubscriptionViewModel(
 
     fun setActive(id: String) {
         repository.setActive(id)
+    }
+
+    /** 上移/下移一条订阅并持久化新顺序；列表重排由仓库的顺序流驱动，界面自动跟随 */
+    fun moveSubscription(id: String, up: Boolean) {
+        val current = _uiState.value.subscriptions
+        val index = current.indexOfFirst { it.id == id }
+        if (index < 0) return
+        val target = if (up) index - 1 else index + 1
+        if (target !in current.indices) return
+        val newOrder = current.map { it.id }.toMutableList().also { list ->
+            list[index] = list[target]
+            list[target] = id
+        }
+        viewModelScope.launch { repository.reorderSubscriptions(newOrder) }
     }
 
     /**
@@ -354,4 +434,37 @@ class SubscriptionViewModel(
     private fun reportProgress(p: ImportProgress) {
         _uiState.value = _uiState.value.copy(importProgress = p)
     }
+}
+
+/** 导入文本的分类结果：订阅地址 / 分享链接内容 / 无法识别。 */
+enum class ImportTextKind { Url, Links, Invalid }
+
+private val SHARE_LINK_SCHEMES = listOf(
+    "vless://", "vmess://", "trojan://", "ss://", "ssr://",
+    "hysteria://", "hy://", "hysteria2://", "hy2://", "tuic://",
+    "wireguard://", "wg://", "socks5://", "anytls://",
+)
+
+/**
+ * 判断一段文本（剪贴簿 / 扫码 / 相册识别所得）该走哪条导入路：
+ * 全部行都是分享链接，或整包 base64 → Links；单个 http(s) 地址 → Url；其余 Invalid。
+ * 与内核侧 sharelink 转换器支持的协议集保持一致。
+ */
+fun classifyImportText(raw: String): ImportTextKind {
+    val text = raw.trim()
+    if (text.isEmpty()) return ImportTextKind.Invalid
+    val lines = text.lines().map { it.trim() }.filter { it.isNotEmpty() }
+    if (lines.isEmpty()) return ImportTextKind.Invalid
+    if (lines.all { line -> SHARE_LINK_SCHEMES.any { line.startsWith(it, ignoreCase = true) } }) {
+        return ImportTextKind.Links
+    }
+    if (lines.size == 1 && text.length >= 24 && text.all { it.isLetterOrDigit() || it in "+/=_-" }) {
+        return ImportTextKind.Links
+    }
+    if (lines.size == 1 && !text.contains(' ') &&
+        (text.startsWith("http://") || text.startsWith("https://"))
+    ) {
+        return ImportTextKind.Url
+    }
+    return ImportTextKind.Invalid
 }

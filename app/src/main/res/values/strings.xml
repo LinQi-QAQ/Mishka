@@ -217,6 +217,62 @@
     <string name="subscription_url_summary">Import from URL</string>
     <string name="subscription_qr">QR Code</string>
     <string name="subscription_qr_summary">Scan QR code to import</string>
+    <string name="subscription_qr_scan">Scan with Camera</string>
+    <string name="subscription_clipboard">Clipboard</string>
+    <string name="subscription_clipboard_summary">Paste share links or a subscription URL</string>
+    <string name="subscription_qr_gallery">Scan from Gallery</string>
+    <string name="subscription_qr_gallery_summary">Pick an image and decode its QR code</string>
+    <string name="subscription_manual">Manual Setup</string>
+    <string name="subscription_manual_summary">Fill in a single node field by field</string>
+    <string name="subscription_auto_clipboard">Auto Import from Clipboard</string>
+    <string name="subscription_auto_clipboard_summary">Import share links from the clipboard when opening the add page</string>
+    <string name="subscription_chain">Proxy Chain</string>
+    <string name="subscription_chain_summary">Route traffic through several nodes in order</string>
+    <string name="chain_name">Chain Name</string>
+    <string name="chain_name_placeholder">e.g. Chain 1</string>
+    <string name="chain_empty_hint">Select at least two nodes</string>
+    <string name="chain_order_hint">Order: traffic passes through earlier nodes first</string>
+    <string name="chain_no_nodes">No nodes available (import a subscription with nodes first)</string>
+    <string name="chain_selected_count">%1$d nodes selected</string>
+    <string name="subscription_imported_name">Imported nodes</string>
+    <string name="subscription_import_invalid">This content can’t be recognized</string>
+    <string name="qr_gallery_not_found">No QR code found in the image</string>
+    <string name="manual_name">Name</string>
+    <string name="manual_server">Server</string>
+    <string name="manual_port">Port</string>
+    <string name="manual_uuid">UUID</string>
+    <string name="manual_password">Password</string>
+    <string name="manual_username">Username</string>
+    <string name="manual_sni">SNI</string>
+    <string name="manual_transport">Transport</string>
+    <string name="manual_security">Security</string>
+    <string name="manual_flow">Flow</string>
+    <string name="manual_fingerprint">Fingerprint</string>
+    <string name="manual_reality_public_key">Reality Public Key</string>
+    <string name="manual_reality_short_id">Reality Short ID</string>
+    <string name="manual_host">Host</string>
+    <string name="manual_path">Path</string>
+    <string name="manual_service_name">Service Name</string>
+    <string name="manual_allow_insecure">Allow Insecure</string>
+    <string name="manual_method">Encryption</string>
+    <string name="manual_alter_id">Alter ID</string>
+    <string name="manual_plugin">Plugin</string>
+    <string name="manual_obfs_mode">Obfs Mode</string>
+    <string name="manual_obfs_host">Obfs Host</string>
+    <string name="manual_obfs_password">Obfs Password</string>
+    <string name="manual_auth">Auth</string>
+    <string name="manual_congestion">Congestion Control</string>
+    <string name="manual_alpn">ALPN</string>
+    <string name="manual_private_key">Private Key</string>
+    <string name="manual_public_key">Peer Public Key</string>
+    <string name="manual_preshared_key">Preshared Key</string>
+    <string name="manual_address">Local Address</string>
+    <string name="manual_mtu">MTU</string>
+    <string name="manual_protocol">Protocol</string>
+    <string name="manual_obfs">Obfs</string>
+    <string name="manual_protocol_param">Protocol Param</string>
+    <string name="manual_obfs_param">Obfs Param</string>
+    <string name="manual_tls">TLS</string>
     <string name="subscription_url_hint">Only accepts mihomo config files (with proxies/rules)</string>
     <string name="subscription_name">Name</string>
     <string name="subscription_name_auto_placeholder">Leave blank to auto-name from subscription</string>
@@ -356,6 +412,20 @@
     <string name="settings_theme_monet_summary">Use the system dynamic color palette when available</string>
     <string name="settings_theme_blur">Blur Effects</string>
     <string name="settings_theme_blur_summary">Enable blur effects for bars and layered surfaces</string>
+    <string name="settings_theme_card_glass">Liquid Glass Cards</string>
+    <string name="settings_theme_background">Background Image</string>
+    <string name="settings_theme_background_none">Not set (gradient)</string>
+    <string name="settings_theme_background_custom">Custom image</string>
+    <string name="settings_theme_background_clear">Clear background image</string>
+    <string name="settings_theme_background_text">Text color on wallpaper</string>
+    <string name="settings_theme_background_text_auto">Follow theme</string>
+    <string name="settings_theme_background_text_dark">Dark text</string>
+    <string name="settings_theme_background_text_light">Light text</string>
+    <string name="settings_theme_card_glass_summary">Apply a liquid glass effect to cards, like the navigation bar</string>
+    <string name="settings_theme_card_glass_blur">Glass blur radius</string>
+    <string name="settings_theme_card_glass_blur_summary">How strongly cards blur what is behind them</string>
+    <string name="settings_theme_card_glass_tint">Glass tint strength</string>
+    <string name="settings_theme_card_glass_tint_summary">How opaque the card tint is</string>
     <string name="settings_theme_blur_style">Top bar blur style</string>
     <string name="settings_theme_blur_style_gaussian">Gaussian</string>
     <string name="settings_theme_blur_style_progressive">Progressive</string>
@@ -502,6 +572,12 @@
     <string name="meta_unified_delay">Unified Delay</string>
     <string name="meta_geodata_mode">Geodata Mode</string>
     <string name="meta_tcp_concurrent">TCP Concurrent</string>
+    <string name="meta_tls_fragment">TLS Fragment</string>
+    <string name="meta_tls_fragment_enable">Enable TLS fragmentation</string>
+    <string name="meta_tls_fragment_enable_summary">Split the TLS ClientHello into small chunks to bypass SNI-based blocking</string>
+    <string name="meta_tls_fragment_size">Fragment size (bytes)</string>
+    <string name="meta_tls_fragment_interval">Fragment interval (ms)</string>
+    <string name="meta_tls_fragment_range_hint">Range like 10-20, default 10-20</string>
     <string name="meta_find_process_mode">Process Match Mode</string>
     <string name="meta_sniffer">Sniffer</string>
     <string name="meta_sniffer_enable">Enable Sniffer</string>
@@ -589,7 +665,8 @@
 
     <!-- About -->
     <string name="about_title">About</string>
-    <string name="about_open_source">Open Source Licenses</string>
+    <string name="about_edition_label" translatable="false">For LinQi</string>
+    <string name="about_description">A Clash proxy client based on Mishka</string>
 
     <!-- FormatUtils -->
 

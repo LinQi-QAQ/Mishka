@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 本地测试渠道专用（不提交）：桌面与应用信息里显示为 Mishka Beta，与稳定版区分 -->
+    <string name="app_name" translatable="false">Sakura Clash Beta</string>
+    <string name="about_edition_label" translatable="false">Beta 測試</string>
+</resources>

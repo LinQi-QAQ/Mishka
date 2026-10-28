@@ -1,5 +1,9 @@
 package top.yukonga.mishka.ui.screen.home
 
+import top.yukonga.mishka.ui.component.blur.cardGlassBackdrop
+import top.yukonga.mishka.ui.component.blur.cardGlassSurface
+import androidx.compose.ui.graphics.Color
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -82,9 +86,11 @@ private fun SpeedCard(
     onClick: () -> Unit,
 ) {
     // 折线图作为整卡背景水印：insideMargin 交给内层 Column，曲线才能铺满卡片（圆角由 Card 自身的 squircle 裁）
+    val glassBackdrop = cardGlassBackdrop()
     Card(
-        modifier = modifier,
+        modifier = modifier.then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp) else Modifier),
         insideMargin = PaddingValues(0.dp),
+        colors = if (glassBackdrop != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
         // 代理未运行时无连接可差分，禁用点击避免弹出空弹窗
         onClick = if (isRunning) onClick else null,
         showIndication = isRunning,
@@ -136,9 +142,11 @@ private fun SubscriptionCard(
     val hasQuota = total > 0
     val progress = if (hasQuota) (used.toFloat() / total.toFloat()).coerceIn(0f, 1f) else 0f
 
+    val glassBackdrop = cardGlassBackdrop()
     Card(
-        modifier = modifier,
+        modifier = modifier.then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp) else Modifier),
         insideMargin = PaddingValues(0.dp),
+        colors = if (glassBackdrop != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
         // 代理未运行时 provider 流量无数据可查，禁用点击避免弹出空弹窗
         onClick = if (isRunning) onClick else null,
         showIndication = isRunning,

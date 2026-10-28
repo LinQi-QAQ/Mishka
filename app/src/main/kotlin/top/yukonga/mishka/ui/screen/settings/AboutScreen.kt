@@ -4,7 +4,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
@@ -19,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -51,20 +49,16 @@ import androidx.compose.ui.unit.sp
 import top.yukonga.mishka.BuildConfig
 import top.yukonga.mishka.R
 import top.yukonga.mishka.ui.component.blur.BlurredBar
-import top.yukonga.mishka.ui.component.blur.ColorBlendToken
 import top.yukonga.mishka.ui.component.blur.rememberBlurBackdrop
 import top.yukonga.mishka.ui.component.blur.rememberBlurEnabled
 import top.yukonga.mishka.ui.component.effect.BgEffectBackground
 import top.yukonga.mishka.ui.theme.LocalAppDarkMode
 import top.yukonga.mishka.ui.util.horizontalCutoutPadding
-import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
-import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
@@ -76,7 +70,6 @@ import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
-import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
@@ -84,8 +77,6 @@ import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 @Composable
 fun AboutScreen(
     onBack: () -> Unit = {},
-    mihomoVersion: String = "",
-    onOpenUrl: (String) -> Unit = {},
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     val lazyListState = rememberLazyListState()
@@ -119,6 +110,7 @@ fun AboutScreen(
     val barColor = if (heroCollapsed && !blurActive) colorScheme.surface else Color.Transparent
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             BlurredBar(backdrop = backdrop, blurActive = blurActive) {
                 SmallTopAppBar(
@@ -154,8 +146,6 @@ fun AboutScreen(
                 scrollBehavior = scrollBehavior,
                 lazyListState = lazyListState,
                 scrollProgress = { scrollProgressState.value },
-                mihomoVersion = mihomoVersion,
-                onOpenUrl = onOpenUrl,
             )
         }
     }
@@ -167,8 +157,6 @@ private fun AboutContent(
     scrollBehavior: ScrollBehavior,
     lazyListState: LazyListState,
     scrollProgress: () -> Float,
-    mihomoVersion: String,
-    onOpenUrl: (String) -> Unit,
 ) {
     val layoutDirection = LocalLayoutDirection.current
     val density = LocalDensity.current
@@ -179,10 +167,6 @@ private fun AboutContent(
     val blurEnabled by rememberBlurEnabled()
     val effectBackground = remember(blurEnabled) { isRuntimeShaderSupported() && blurEnabled }
 
-    val cardBlendColors = remember(isDark) {
-        if (isDark) ColorBlendToken.Overlay_Thin_Light
-        else ColorBlendToken.Pured_Regular_Light
-    }
     val logoBlend = remember(isDark) {
         if (isDark) {
             listOf(
@@ -241,7 +225,7 @@ private fun AboutContent(
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(120.dp)
                     .clipToBounds()
                     .graphicsLayer {
                         val p = iconProgress()
@@ -250,23 +234,11 @@ private fun AboutContent(
                         scaleY = 1 - (p * 0.05f)
                     },
             ) {
+                // 樱花原图直接完整显示：不再套给单色图形用的毛玻璃遮罩（会把花色吃掉只剩背景剪影），
+                // 也不再放大裁切，整朵花都露出来
                 Image(
-                    modifier = Modifier
-                        .requiredSize(250.dp)
-                        .then(
-                            if (blurEnabled) {
-                                Modifier.textureBlur(
-                                    backdrop = backdrop,
-                                    shape = RoundedCornerShape(0.dp),
-                                    blurRadius = 150f,
-                                    colors = BlurColors(blendColors = logoBlend),
-                                    contentBlendMode = BlendMode.DstIn,
-                                    enabled = true,
-                                )
-                            } else Modifier
-                        ),
-                    painter = painterResource(R.drawable.app_logo),
-                    colorFilter = ColorFilter.tint(colorScheme.onBackground),
+                    modifier = Modifier.requiredSize(120.dp),
+                    painter = painterResource(R.drawable.app_logo_art),
                     contentDescription = "icon",
                 )
             }
@@ -291,7 +263,7 @@ private fun AboutContent(
                             )
                         } else Modifier
                     ),
-                text = "Sakura Clash",
+                text = stringResource(R.string.app_name),
                 color = colorScheme.onBackground,
                 fontWeight = FontWeight.Bold,
                 fontSize = 35.sp,
@@ -313,8 +285,17 @@ private fun AboutContent(
             Text(
                 modifier = Modifier.fillMaxWidth(),
                 color = colorScheme.onSurfaceVariantSummary,
-                text = "For LinQi",
+                text = stringResource(R.string.about_edition_label),
                 fontSize = 12.sp,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp, start = 32.dp, end = 32.dp),
+                color = colorScheme.onSurfaceVariantSummary,
+                text = stringResource(R.string.about_description),
+                fontSize = 13.sp,
                 textAlign = TextAlign.Center,
             )
         }
@@ -344,66 +325,6 @@ private fun AboutContent(
                 )
             }
 
-            item(key = "about") {
-                Box {
-                    Spacer(Modifier.fillParentMaxHeight())
-                    Column(
-                        modifier = Modifier.padding(bottom = 12.dp),
-                    ) {
-                        SmallTitle(text = stringResource(R.string.about_open_source))
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp)
-                                .padding(bottom = 12.dp)
-                                .then(
-                                    if (blurEnabled) {
-                                        Modifier.textureBlur(
-                                            backdrop = backdrop,
-                                            shape = RoundedCornerShape(16.dp),
-                                            blurRadius = 60f,
-                                            colors = BlurColors(blendColors = cardBlendColors),
-                                            enabled = true,
-                                        )
-                                    } else Modifier
-                                ),
-                            colors = CardDefaults.defaultColors(
-                                if (blurEnabled) Color.Transparent else colorScheme.surfaceContainer,
-                                Color.Transparent,
-                            ),
-                        ) {
-                            val ossProjects = remember(mihomoVersion) {
-                                listOf(
-                                    "Mishka for LinQi" to "https://github.com/LinQi-QAQ/Mishka",
-                                    "Mishka" to "https://github.com/YuKongA/Mishka",
-                                    (if (mihomoVersion.isNotEmpty()) "mihomo ($mihomoVersion)" else "mihomo") to "https://github.com/MetaCubeX/mihomo",
-                                    "miuix" to "https://github.com/compose-miuix-ui/miuix",
-                                    "scripta" to "https://github.com/YuKongA/scripta",
-                                    "AndroidHiddenApiBypass" to "https://github.com/LSPosed/AndroidHiddenApiBypass",
-                                    "AndroidX" to "https://github.com/androidx/androidx",
-                                    "Koin" to "https://github.com/InsertKoinIO/koin",
-                                    "Kotlin" to "https://github.com/JetBrains/kotlin",
-                                    "kotlinx.collections.immutable" to "https://github.com/Kotlin/kotlinx.collections.immutable",
-                                    "kotlinx.coroutines" to "https://github.com/Kotlin/kotlinx.coroutines",
-                                    "kotlinx-datetime" to "https://github.com/Kotlin/kotlinx-datetime",
-                                    "kotlinx.serialization" to "https://github.com/Kotlin/kotlinx.serialization",
-                                    "Ktor" to "https://github.com/ktorio/ktor",
-                                    "quickie" to "https://github.com/G00fY2/quickie",
-                                )
-                            }
-                            ossProjects.forEach { (name, url) ->
-                                ArrowPreference(
-                                    title = name,
-                                    summary = url.removePrefix("https://"),
-                                    onClick = { onOpenUrl(url) },
-                                )
-                            }
-                        }
-
-                        Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.systemBars))
-                    }
-                }
-            }
         }
     }
 }
