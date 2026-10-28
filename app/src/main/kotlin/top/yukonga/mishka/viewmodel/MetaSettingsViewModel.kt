@@ -120,11 +120,6 @@ data class MetaSettingsUiState(
     val tlsFragment: TlsFragmentOverride? = null,
 )
 
-@Immutable
-data class GeoDataUiState(
-    val isUpdating: Boolean = false,
-    val summary: String = "",
-)
 
 @Immutable
 data class GeoDataUiState(

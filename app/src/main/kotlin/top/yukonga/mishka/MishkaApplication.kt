@@ -44,9 +44,6 @@ class MishkaApplication : Application() {
     private val updateScheduler: ProfileUpdateScheduler by inject()
     private val appScope: CoroutineScope by inject()
 
-    override fun attachBaseContext(base: Context) {
-        super.attachBaseContext(LanguageHelper.wrapBaseContext(base))
-    }
 
     override fun attachBaseContext(base: Context) {
         super.attachBaseContext(LanguageHelper.wrapBaseContext(base))
