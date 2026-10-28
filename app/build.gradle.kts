@@ -3,6 +3,12 @@ import java.net.URI
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.Properties
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.TaskAction
 
 plugins {
     alias(libs.plugins.androidApplication)
@@ -252,10 +258,6 @@ tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.con
 
 val mihomoSubmoduleDir = rootProject.layout.projectDirectory.dir("mihomo")
 val mishkaCoreSourceDir = rootProject.layout.projectDirectory.dir("app/src/main/native/mishka_core")
-
-// mihomo 补丁文件与子模块目录（顶层求值，避免嵌套块里解析不到）
-val mihomoPatchFile = rootProject.layout.projectDirectory.file("patches/mihomo-tls-fragment.patch").asFile
-val mihomoPatchDir = mihomoSubmoduleDir.asFile
 val mihomoBuildTags = listOf("cmfa", "mishka", "with_gvisor")
 val mihomoVersion = providers.gradleProperty("mihomo.version").orElse("dev").get()
 val mihomoVersionPath = "github.com/metacubex/mihomo/constant.Version"
@@ -295,15 +297,24 @@ val buildMihomo = tasks.register("buildMihomo") {
 
 // 打 mihomo 补丁：TLS 分片 patch 不在子模块上游里，以文件形式放在 patches/，
 // 构建前自动打上（已打过则跳过），保证 clone 下来就能直接编出带分片功能的定制版
-val applyMihomoPatches = tasks.register("applyMihomoPatches") {
-    group = "mihomo"
-    description = "Apply vendored mihomo patches if not already applied"
-    doLast {
+// 必须是独立任务类 + 声明式输入：doLast 里直接引用脚本变量会在配置缓存序列化时失败
+// （cannot serialize Gradle script object references），改走任务自身的输入属性
+abstract class ApplyMihomoPatches : DefaultTask() {
+    @get:InputFile
+    abstract val patchFile: RegularFileProperty
+
+    @get:InputDirectory
+    abstract val mihomoDir: DirectoryProperty
+
+    @TaskAction
+    fun apply() {
+        val patch = patchFile.get().asFile
+        val dir = mihomoDir.get().asFile
         fun gitApplyCheck(reverse: Boolean): Boolean {
             val cmd = mutableListOf("git", "apply", "--check")
             if (reverse) cmd.add("--reverse")
-            cmd.add(mihomoPatchFile.absolutePath)
-            val proc = ProcessBuilder(cmd).directory(mihomoPatchDir).redirectErrorStream(true).start()
+            cmd.add(patch.absolutePath)
+            val proc = ProcessBuilder(cmd).directory(dir).redirectErrorStream(true).start()
             proc.inputStream.readAllBytes()
             return proc.waitFor() == 0
         }
@@ -313,13 +324,20 @@ val applyMihomoPatches = tasks.register("applyMihomoPatches") {
             if (!gitApplyCheck(false)) {
                 throw GradleException("mihomo patch does not apply cleanly; check patches/mihomo-tls-fragment.patch against the mihomo submodule")
             }
-            val proc = ProcessBuilder(listOf("git", "apply", mihomoPatchFile.absolutePath)).directory(mihomoPatchDir).inheritIO().start()
+            val proc = ProcessBuilder(listOf("git", "apply", patch.absolutePath)).directory(dir).inheritIO().start()
             if (proc.waitFor() != 0) {
                 throw GradleException("git apply failed for patches/mihomo-tls-fragment.patch")
             }
             logger.lifecycle("mihomo patch applied")
         }
     }
+}
+
+val applyMihomoPatches = tasks.register<ApplyMihomoPatches>("applyMihomoPatches") {
+    group = "mihomo"
+    description = "Apply vendored mihomo patches if not already applied"
+    patchFile.set(rootProject.layout.projectDirectory.file("patches/mihomo-tls-fragment.patch"))
+    mihomoDir.set(mihomoSubmoduleDir)
 }
 buildMihomoTasks.forEach { it.configure { dependsOn(applyMihomoPatches) } }
 
