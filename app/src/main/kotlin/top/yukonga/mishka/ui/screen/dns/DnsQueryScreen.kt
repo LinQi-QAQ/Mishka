@@ -35,6 +35,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import top.yukonga.mishka.R
 import top.yukonga.mishka.domain.model.DnsAnswer
+import top.yukonga.mishka.ui.component.blur.cardGlassBackdrop
+import top.yukonga.mishka.ui.component.blur.cardGlassSurface
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.mishka.ui.component.AdaptiveTopAppBar
 import top.yukonga.mishka.ui.component.CardItem
 import top.yukonga.mishka.ui.component.blur.BlurredBar
@@ -200,11 +203,14 @@ fun DnsQueryScreen(
 
             if (uiState.error.isNotEmpty()) {
                 item(key = "error") {
+                    val glassBackdrop = cardGlassBackdrop()
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp)
-                            .padding(top = 12.dp, bottom = 6.dp),
+                            .padding(top = 12.dp, bottom = 6.dp)
+                            .then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp) else Modifier),
+                        colors = if (glassBackdrop != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
                         insideMargin = PaddingValues(16.dp),
                     ) {
                         Text(
@@ -223,11 +229,14 @@ fun DnsQueryScreen(
 
                 if (uiState.answers.isEmpty()) {
                     item(key = "no_result") {
+                        val glassBackdrop = cardGlassBackdrop()
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 12.dp)
-                                .padding(bottom = 12.dp),
+                                .padding(bottom = 12.dp)
+                                .then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp) else Modifier),
+                            colors = if (glassBackdrop != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
                             insideMargin = PaddingValues(16.dp),
                         ) {
                             Text(

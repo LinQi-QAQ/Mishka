@@ -29,6 +29,9 @@ import top.yukonga.mishka.R
 import top.yukonga.mishka.data.bridge.MishkaCoreBridge
 import top.yukonga.mishka.platform.ProfileFileManager
 import top.yukonga.mishka.platform.showToast
+import top.yukonga.mishka.ui.component.blur.cardGlassBackdrop
+import top.yukonga.mishka.ui.component.blur.cardGlassSurface
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.mishka.ui.component.blur.BlurredBar
 import top.yukonga.mishka.ui.component.blur.rememberBlurBackdrop
 import top.yukonga.mishka.ui.theme.LocalAppDarkMode
@@ -163,11 +166,14 @@ fun FileManagerEditorScreen(
                 .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
                 .padding(top = innerPadding.calculateTopPadding()),
         ) {
+            val glassBackdrop = cardGlassBackdrop()
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp)
-                    .padding(bottom = 12.dp),
+                    .padding(bottom = 12.dp)
+                    .then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp) else Modifier),
+                colors = if (glassBackdrop != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
             ) {
                 Text(
                     text = stringResource(R.string.file_manager_edit_warning),

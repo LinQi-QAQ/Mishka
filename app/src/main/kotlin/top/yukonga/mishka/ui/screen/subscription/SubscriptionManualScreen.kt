@@ -18,6 +18,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import top.yukonga.mishka.R
+import top.yukonga.mishka.ui.component.blur.cardGlassBackdrop
+import top.yukonga.mishka.ui.component.blur.cardGlassSurface
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.mishka.ui.component.AdaptiveTopAppBar
 import top.yukonga.mishka.ui.component.blur.BlurredBar
 import top.yukonga.mishka.ui.component.blur.rememberBlurBackdrop
@@ -88,11 +91,14 @@ fun SubscriptionManualScreen(
             contentPadding = PaddingValues(top = innerPadding.calculateTopPadding()),
         ) {
             item {
+                val glassBackdrop = cardGlassBackdrop()
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp)
-                        .padding(top = 12.dp),
+                        .padding(top = 12.dp)
+                        .then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp) else Modifier),
+                    colors = if (glassBackdrop != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
                 ) {
                     SwitchPreference(
                         title = stringResource(R.string.subscription_auto_clipboard),
@@ -108,11 +114,14 @@ fun SubscriptionManualScreen(
                 }
             }
             item {
+                val glassBackdrop = cardGlassBackdrop()
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp)
-                        .padding(top = 12.dp),
+                        .padding(top = 12.dp)
+                        .then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp) else Modifier),
+                    colors = if (glassBackdrop != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
                 ) {
                     for ((key, displayName) in MANUAL_PROTOCOLS) {
                         ArrowPreference(

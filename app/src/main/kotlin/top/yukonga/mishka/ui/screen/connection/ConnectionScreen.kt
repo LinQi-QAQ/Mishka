@@ -49,6 +49,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import top.yukonga.mishka.R
 import top.yukonga.mishka.domain.model.ConnectionInfo
+import top.yukonga.mishka.ui.component.blur.cardGlassBackdrop
+import top.yukonga.mishka.ui.component.blur.cardGlassSurface
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.mishka.ui.component.AdaptiveTopAppBar
 import top.yukonga.mishka.ui.component.SearchBarFake
 import top.yukonga.mishka.ui.component.SearchBox
@@ -328,10 +331,13 @@ private fun StatsCard(
     uploadTotal: Long,
     downloadTotal: Long,
 ) {
+    val glassBackdrop = cardGlassBackdrop()
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp) else Modifier),
+        colors = if (glassBackdrop != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
         insideMargin = PaddingValues(16.dp),
     ) {
         Row(
@@ -369,11 +375,14 @@ private fun ConnectionItem(
 ) {
     val meta = connection.metadata
 
+    val glassBackdrop = cardGlassBackdrop()
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp)
-            .padding(bottom = 12.dp),
+            .padding(bottom = 12.dp)
+            .then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp) else Modifier),
+        colors = if (glassBackdrop != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
         insideMargin = PaddingValues(16.dp),
     ) {
         // 标题行：Host + 关闭按钮

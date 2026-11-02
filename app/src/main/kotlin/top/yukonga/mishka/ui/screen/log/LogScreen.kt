@@ -46,6 +46,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import top.yukonga.mishka.R
 import top.yukonga.mishka.domain.model.LogMessage
+import top.yukonga.mishka.ui.component.blur.cardGlassBackdrop
+import top.yukonga.mishka.ui.component.blur.cardGlassSurface
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.mishka.ui.component.AdaptiveTopAppBar
 import top.yukonga.mishka.ui.component.SearchBarFake
 import top.yukonga.mishka.ui.component.SearchBox
@@ -360,11 +363,14 @@ private fun LogCard(log: LogMessage) {
     val parsed = remember(log.payload) { parsePayload(log.payload) }
     val isParsed = parsed.target.isNotEmpty()
 
+    val glassBackdrop = cardGlassBackdrop()
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp)
-            .padding(bottom = 12.dp),
+            .padding(bottom = 12.dp)
+            .then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp) else Modifier),
+        colors = if (glassBackdrop != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
         insideMargin = PaddingValues(12.dp),
     ) {
         Column(

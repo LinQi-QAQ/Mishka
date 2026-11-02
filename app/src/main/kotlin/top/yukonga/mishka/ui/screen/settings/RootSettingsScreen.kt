@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.sp
 import top.yukonga.mishka.R
 import top.yukonga.mishka.platform.PlatformStorage
 import top.yukonga.mishka.platform.StorageKeys
+import top.yukonga.mishka.ui.component.blur.cardGlassBackdrop
+import top.yukonga.mishka.ui.component.blur.cardGlassSurface
 import top.yukonga.mishka.ui.component.AdaptiveTopAppBar
 import top.yukonga.mishka.ui.component.CardItem
 import top.yukonga.mishka.ui.component.RestartRequiredHint
@@ -195,11 +197,14 @@ fun RootSettingsScreen(
             item { SmallTitle(text = stringResource(R.string.root_section_tether)) }
             if (showTproxyWarning) {
                 item {
+                    val glassBackdrop = cardGlassBackdrop()
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp)
-                            .padding(bottom = 12.dp),
+                            .padding(bottom = 12.dp)
+                            .then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp) else Modifier),
+
                         colors = CardDefaults.defaultColors(
                             color = MiuixTheme.colorScheme.errorContainer,
                             contentColor = MiuixTheme.colorScheme.onErrorContainer,

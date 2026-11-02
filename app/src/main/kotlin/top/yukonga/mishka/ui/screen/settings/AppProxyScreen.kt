@@ -41,6 +41,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import top.yukonga.mishka.R
 import top.yukonga.mishka.platform.showToast
+import top.yukonga.mishka.ui.component.blur.cardGlassBackdrop
+import top.yukonga.mishka.ui.component.blur.cardGlassSurface
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.mishka.ui.component.AdaptiveTopAppBar
 import top.yukonga.mishka.ui.component.ListPopupDefaults.MenuPositionProvider
 import top.yukonga.mishka.ui.component.SearchBarFake
@@ -354,10 +357,13 @@ fun AppProxyScreen(
                 ),
             ) {
                 item(key = "mode_card") {
+                    val glassBackdrop = cardGlassBackdrop()
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp) else Modifier),
+                        colors = if (glassBackdrop != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
                     ) {
                         RadioButtonPreference(
                             title = stringResource(R.string.app_proxy_allow_all),
@@ -462,10 +468,13 @@ private fun AppItem(
     isSelected: Boolean,
     onToggle: () -> Unit,
 ) {
+    val glassBackdrop = cardGlassBackdrop()
     Card(
         modifier = Modifier
             .padding(horizontal = 12.dp)
-            .padding(bottom = 12.dp),
+            .padding(bottom = 12.dp)
+            .then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp) else Modifier),
+        colors = if (glassBackdrop != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
     ) {
         BasicComponent(
             title = appName,

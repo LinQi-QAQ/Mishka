@@ -32,6 +32,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import top.yukonga.mishka.R
 import top.yukonga.mishka.domain.model.OverrideProfile
 import top.yukonga.mishka.domain.model.orderedOverrideIds
+import top.yukonga.mishka.ui.component.blur.cardGlassBackdrop
+import top.yukonga.mishka.ui.component.blur.cardGlassSurface
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.mishka.ui.component.AdaptiveTopAppBar
 import top.yukonga.mishka.ui.component.HintCard
 import top.yukonga.mishka.ui.component.blur.BlurredBar
@@ -147,11 +150,14 @@ fun SubscriptionOverridesScreen(
 
                 if (overrideState.error.isNotEmpty()) {
                     item(key = "error") {
+                        val glassBackdrop = cardGlassBackdrop()
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 12.dp)
-                                .padding(bottom = 12.dp),
+                                .padding(bottom = 12.dp)
+                                .then(if (glassBackdrop != null) Modifier.cardGlassSurface(glassBackdrop, 16.dp, 16.dp) else Modifier),
+                            colors = if (glassBackdrop != null) CardDefaults.defaultColors(color = Color.Transparent) else CardDefaults.defaultColors(),
                             insideMargin = PaddingValues(16.dp),
                         ) {
                             Text(text = overrideState.error, color = StatusColors.danger)
