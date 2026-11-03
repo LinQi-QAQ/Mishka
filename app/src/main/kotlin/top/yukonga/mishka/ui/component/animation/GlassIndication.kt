@@ -59,7 +59,7 @@ private class GlassIndicationNode(
 
     private val progress = Animatable(0f, 0.001f)
     private var spot = Offset.Zero
-    // HoldDown 不带坐标，此时光斑点应落在控件中心而非上一次按压处
+    // HoldDown 不带坐标，只能画整块；此时不画光斑，免得落在上一次按压的位置
     private var hasSpot = false
     private var collectJob: Job? = null
 
