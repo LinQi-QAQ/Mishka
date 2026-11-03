@@ -15,6 +15,7 @@ data class ThemeConfig(
     val blurEnabled: Boolean = true,
     val topBarBlurStyle: TopBarBlurStyle = TopBarBlurStyle.Gaussian,
     val cardLiquidGlass: Boolean = true,
+    val pressHighlight: Boolean = true,
     val cardGlassBlurRadius: Float = 20f,
     val cardGlassTintAlpha: Float = 0.5f,
     val backgroundImagePath: String? = null,
@@ -114,6 +115,7 @@ fun readThemeConfig(storage: PlatformStorage): ThemeConfig {
         ),
         blurEnabled = storage.getString(StorageKeys.THEME_BLUR, "true") != "false",
         cardLiquidGlass = storage.getString(StorageKeys.THEME_CARD_LIQUID_GLASS, "true") != "false",
+        pressHighlight = storage.getString(StorageKeys.THEME_PRESS_HIGHLIGHT, "true") != "false",
         cardGlassBlurRadius = storage.getString(StorageKeys.THEME_CARD_GLASS_BLUR, "20")?.toFloatOrNull()
             ?.coerceIn(5f, 40f) ?: 20f,
         cardGlassTintAlpha = storage.getString(StorageKeys.THEME_CARD_GLASS_TINT, "0.5")?.toFloatOrNull()
@@ -161,6 +163,7 @@ fun writeThemeConfig(storage: PlatformStorage, config: ThemeConfig) {
     storage.putString(StorageKeys.THEME_BLUR, config.blurEnabled.toString())
     storage.putString(StorageKeys.THEME_BLUR_STYLE, config.topBarBlurStyle.storageValue)
     storage.putString(StorageKeys.THEME_CARD_LIQUID_GLASS, config.cardLiquidGlass.toString())
+    storage.putString(StorageKeys.THEME_PRESS_HIGHLIGHT, config.pressHighlight.toString())
     storage.putString(StorageKeys.THEME_CARD_GLASS_BLUR, config.cardGlassBlurRadius.toString())
     storage.putString(StorageKeys.THEME_CARD_GLASS_TINT, config.cardGlassTintAlpha.toString())
     storage.putString(StorageKeys.THEME_BACKGROUND_IMAGE, config.backgroundImagePath ?: "")

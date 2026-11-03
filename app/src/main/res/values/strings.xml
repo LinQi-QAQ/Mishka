@@ -422,6 +422,8 @@
     <string name="settings_theme_background_text_dark">Dark text</string>
     <string name="settings_theme_background_text_light">Light text</string>
     <string name="settings_theme_card_glass_summary">Apply a liquid glass effect to cards, like the navigation bar</string>
+    <string name="settings_theme_press_highlight">Press highlight</string>
+    <string name="settings_theme_press_highlight_summary">Show a spotlight that follows your finger when you press a button, row or card</string>
     <string name="settings_theme_card_glass_blur">Glass blur radius</string>
     <string name="settings_theme_card_glass_blur_summary">How strongly cards blur what is behind them</string>
     <string name="settings_theme_card_glass_tint">Glass tint strength</string>

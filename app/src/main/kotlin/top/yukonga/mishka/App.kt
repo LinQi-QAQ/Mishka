@@ -1,5 +1,6 @@
 package top.yukonga.mishka
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -11,6 +12,7 @@ import top.yukonga.mishka.platform.BootStartManager
 import top.yukonga.mishka.platform.FilePicker
 import top.yukonga.mishka.platform.PlatformStorage
 import top.yukonga.mishka.platform.WifiPolicyController
+import top.yukonga.mishka.ui.component.animation.GlassIndication
 import top.yukonga.mishka.ui.component.blur.LocalBlurEnabled
 import top.yukonga.mishka.ui.component.blur.LocalCardBackgroundImage
 import top.yukonga.mishka.ui.component.blur.LocalCardGlassBlur
@@ -128,8 +130,14 @@ fun App(
                 fontScale = currentDensity.fontScale,
             )
         }
+        // 按压反馈：用跟随按压点的光斑取代 miuix 默认的整块均匀压暗。
+        // 关闭时读外层原值透传——MiuixTheme 那一层已经 provides 了自己的默认实现，
+        // 这里读到的是它而不是 Compose 的默认 null
+        val indicationColor = MiuixTheme.colorScheme.onBackground
+        val glassIndication = remember(indicationColor) { GlassIndication(indicationColor) }
         CompositionLocalProvider(
             LocalAppDarkMode provides isDark,
+            LocalIndication provides if (themeConfig.pressHighlight) glassIndication else LocalIndication.current,
             LocalAppMonetEnabled provides themeConfig.useMonet,
             LocalPlatformDensity provides currentDensity,
             LocalDensity provides appDensity,

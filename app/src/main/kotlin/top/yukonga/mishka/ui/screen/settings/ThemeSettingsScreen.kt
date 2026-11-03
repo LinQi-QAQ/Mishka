@@ -392,6 +392,16 @@ fun ThemeSettingsScreen(
                                     }
                                 }
                             })
+                            add(CardItem("pressHighlight") {
+                                SwitchPreference(
+                                    title = stringResource(R.string.settings_theme_press_highlight),
+                                    summary = stringResource(R.string.settings_theme_press_highlight_summary),
+                                    checked = themeConfig.pressHighlight,
+                                    onCheckedChange = { checked ->
+                                        updateTheme(themeConfig.copy(pressHighlight = checked))
+                                    },
+                                )
+                            })
                             add(CardItem("backgroundImage") {
                                 ArrowPreference(
                                     title = stringResource(R.string.settings_theme_background),

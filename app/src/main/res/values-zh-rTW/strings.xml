@@ -420,6 +420,8 @@
     <string name="settings_theme_background_text_dark">深色字</string>
     <string name="settings_theme_background_text_light">淺色字</string>
     <string name="settings_theme_card_glass_summary">為卡片套用液態玻璃效果，與導航欄同款</string>
+    <string name="settings_theme_press_highlight">按壓高光</string>
+    <string name="settings_theme_press_highlight_summary">按下按鈕、列表項目或卡片時顯示跟隨手指的光斑</string>
     <string name="settings_theme_card_glass_blur">玻璃模糊半徑</string>
     <string name="settings_theme_card_glass_blur_summary">卡片對身後內容的模糊強度</string>
     <string name="settings_theme_card_glass_tint">玻璃著色濃度</string>

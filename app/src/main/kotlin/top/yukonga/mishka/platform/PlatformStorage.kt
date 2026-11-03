@@ -104,6 +104,7 @@ object StorageKeys {
     const val THEME_BLUR = "theme_blur"
     const val THEME_BLUR_STYLE = "theme_blur_style"
     const val THEME_CARD_LIQUID_GLASS = "theme_card_liquid_glass"
+    const val THEME_PRESS_HIGHLIGHT = "theme_press_highlight"
     const val THEME_CARD_GLASS_BLUR = "theme_card_glass_blur"
     const val THEME_CARD_GLASS_TINT = "theme_card_glass_tint"
     const val THEME_BACKGROUND_IMAGE = "theme_background_image"
