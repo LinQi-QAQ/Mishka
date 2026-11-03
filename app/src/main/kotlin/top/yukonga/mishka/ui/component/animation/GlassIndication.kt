@@ -1,7 +1,6 @@
 package top.yukonga.mishka.ui.component.animation
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.IndicationNodeFactory
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -15,6 +14,7 @@ import androidx.compose.ui.node.DrawModifierNode
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.anim.folmeSpring
 import top.yukonga.miuix.kmp.interfaces.HoldDownInteraction
 
 /**
@@ -32,7 +32,7 @@ import top.yukonga.miuix.kmp.interfaces.HoldDownInteraction
  */
 class GlassIndication(
     private val color: Color,
-    private val maxAlpha: Float = 0.14f,
+    private val maxAlpha: Float = 0.22f,
 ) : IndicationNodeFactory {
 
     override fun create(interactionSource: InteractionSource): DelegatableNode =
@@ -49,7 +49,15 @@ class GlassIndication(
     override fun hashCode(): Int = 31 * color.hashCode() + maxAlpha.hashCode()
 }
 
-private val PressSpec = spring<Float>(0.5f, 300f, 0.001f)
+// 按压进出各用 miuix 自己的 folme 弹簧：按下要抢在手指抬起前亮到位。
+// 一次点击通常只有 80~120ms，刚度不足的弹簧在这段时间里几乎走不动，
+// 松手才开始变亮——那正是「看不出来」的原因。
+private val PressEnterSpec = folmeSpring<Float>(1f, 0.2f)
+private val PressExitSpec = folmeSpring<Float>(0.95f, 0.35f)
+
+// 整块底噪的强度。miuix 默认按下是 0.1，这里压在它下方——真正表达「按下去」的是
+// 光斑；底噪只兜住光斑够不着的角落，压到 0.1 就会盖过光斑、变回一整片灰
+private const val FlatAlpha = 0.06f
 
 private class GlassIndicationNode(
     private val interactionSource: InteractionSource,
@@ -70,23 +78,23 @@ private class GlassIndicationNode(
                     is PressInteraction.Press -> {
                         spot = interaction.pressPosition
                         hasSpot = true
-                        launch { progress.animateTo(1f, PressSpec) }
+                        launch { progress.animateTo(1f, PressEnterSpec) }
                     }
 
                     is PressInteraction.Release, is PressInteraction.Cancel -> {
                         hasSpot = false
-                        launch { progress.animateTo(0f, PressSpec) }
+                        launch { progress.animateTo(0f, PressExitSpec) }
                     }
 
                     // 弹窗入口行在对话框打开期间保持按下态，走的是 miuix 自己的
                     // HoldDownInteraction 而非 PressInteraction；漏了这条，那些行
                     // 打开弹窗后就会悄悄「松」掉
                     is HoldDownInteraction.HoldDown -> {
-                        launch { progress.animateTo(1f, PressSpec) }
+                        launch { progress.animateTo(1f, PressEnterSpec) }
                     }
 
                     is HoldDownInteraction.Release -> {
-                        launch { progress.animateTo(0f, PressSpec) }
+                        launch { progress.animateTo(0f, PressExitSpec) }
                     }
                 }
             }
@@ -104,7 +112,7 @@ private class GlassIndicationNode(
         val alpha = progress.value
         if (alpha <= 0f) return
         // 整块轻叠一层，按压位置落在控件之外（长按后滑出）时仍有点反馈
-        drawRect(color.copy(alpha = maxAlpha * 0.35f * alpha))
+        drawRect(color.copy(alpha = FlatAlpha * alpha))
         if (!hasSpot) {
             // HoldDown 没有坐标：铺整块即可，别拿上一次按压点画到不相干的位置
             return
@@ -117,9 +125,11 @@ private class GlassIndicationNode(
         val radius = (size.minDimension * 1.2f).coerceAtLeast(1f)
         drawRect(
             brush = Brush.radialGradient(
+                // 内部一半保持满强度再向外衰减：纯线性渐变的可见面积太小，
+                // 玻璃卡片本来就浅，一眼看过去只剩中心一点点亮
                 colorStops = arrayOf(
                     0f to color.copy(alpha = maxAlpha * alpha),
-                    0.6f to color.copy(alpha = maxAlpha * 0.45f * alpha),
+                    0.45f to color.copy(alpha = maxAlpha * 0.8f * alpha),
                     1f to color.copy(alpha = 0f),
                 ),
                 center = center,
