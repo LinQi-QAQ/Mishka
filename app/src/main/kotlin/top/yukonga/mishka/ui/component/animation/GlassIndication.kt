@@ -1,6 +1,8 @@
 package top.yukonga.mishka.ui.component.animation
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.IndicationNodeFactory
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -12,9 +14,9 @@ import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DrawModifierNode
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import top.yukonga.miuix.kmp.anim.folmeSpring
 import top.yukonga.miuix.kmp.interfaces.HoldDownInteraction
 
 /**
@@ -49,11 +51,24 @@ class GlassIndication(
     override fun hashCode(): Int = 31 * color.hashCode() + maxAlpha.hashCode()
 }
 
-// 按压进出各用 miuix 自己的 folme 弹簧：按下要抢在手指抬起前亮到位。
-// 一次点击通常只有 80~120ms，刚度不足的弹簧在这段时间里几乎走不动，
-// 松手才开始变亮——那正是「看不出来」的原因。
-private val PressEnterSpec = folmeSpring<Float>(1f, 0.2f)
-private val PressExitSpec = folmeSpring<Float>(0.95f, 0.35f)
+// 按下即满亮，不做入场动画；松手后先保持 90ms 再淡出。
+//
+// 依据实测日志而不是手感猜测：miuix 的 pressable 用 delayJob + tryAwaitRelease
+// 发事件，短按时 Press 与 Release 会落在同一毫秒（多次记录：37.856 Press / 37.856
+// Release），两者之间没有任何一帧被绘制。这意味着在这个 UI 里，短按根本承载不了
+// 逐帧推进的入场动画——不管入场取 40ms、60ms 还是 73ms 的弹簧，都跑不出一帧。
+//
+// 所以落点放在「按下的那一帧就是一帧完整可见」：snapTo 让它在唯一被绘制的那一帧
+// 就是满强度；松手后再靠出场动画留一段可见时间，让人看得见它退下去。
+//
+// holdAfterRelease 是手机上的实际观感：不保持的话，动画刚开始就被下一帧的淡出
+// 接走，仍然只闪一下。90ms 约等于三帧，足够形成「亮—留—退」的三段感。
+//
+// 出场仍保留 tween：snap 到 0 会像被掐断，而这 150ms 是在松手之后跑的，
+// 不受「Press/Release 同帧」那条约束。缓动取 FastOutLinearIn——开头快，
+// 让人觉得反馈立刻收回，尾部拖长则显拖沓。
+private const val HoldAfterReleaseMillis = 90L
+private val PressExitSpec = tween<Float>(durationMillis = 150, easing = FastOutLinearInEasing)
 
 // 整块底噪的强度。miuix 默认按下是 0.1，这里压在它下方——真正表达「按下去」的是
 // 光斑；底噪只兜住光斑够不着的角落，压到 0.1 就会盖过光斑、变回一整片灰
@@ -78,19 +93,23 @@ private class GlassIndicationNode(
                     is PressInteraction.Press -> {
                         spot = interaction.pressPosition
                         hasSpot = true
-                        launch { progress.animateTo(1f, PressEnterSpec) }
+                        progress.snapTo(1f)
                     }
 
                     is PressInteraction.Release, is PressInteraction.Cancel -> {
-                        hasSpot = false
-                        launch { progress.animateTo(0f, PressExitSpec) }
+                        // 不清 hasSpot：淡出期间还要靠它继续画光斑。
+                        // 先保持一小段再淡，否则短按只会闪一帧。
+                        launch {
+                            delay(HoldAfterReleaseMillis)
+                            progress.animateTo(0f, PressExitSpec)
+                        }
                     }
 
                     // 弹窗入口行在对话框打开期间保持按下态，走的是 miuix 自己的
                     // HoldDownInteraction 而非 PressInteraction；漏了这条，那些行
                     // 打开弹窗后就会悄悄「松」掉
                     is HoldDownInteraction.HoldDown -> {
-                        launch { progress.animateTo(1f, PressEnterSpec) }
+                        progress.snapTo(1f)
                     }
 
                     is HoldDownInteraction.Release -> {
