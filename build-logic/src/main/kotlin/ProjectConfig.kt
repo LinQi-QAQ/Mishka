@@ -12,8 +12,8 @@ object ProjectConfig {
      *
      * 发版规则：构建成功后才把这里 +1 并提交；试运行、失败构建不占用版本号。
      */
-    const val VERSION_NAME = "1.1.3"
-    const val VERSION_CODE = 269
+    const val VERSION_NAME = "1.1.4"
+    const val VERSION_CODE = 270
 
     object Android {
         const val TARGET_SDK = 37
